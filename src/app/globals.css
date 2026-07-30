@@ -2,19 +2,35 @@
 @import "leaflet/dist/leaflet.css";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-primary: #c1440e;
+  --color-primary-dark: #9a3308;
+  --color-primary-light: #e86b2a;
+  --color-primary-lighter: #fdf1eb;
+  --color-surface: #f7f5f2;
+  --color-surface-card: #ffffff;
+  --color-surface-elevated: #f0ede8;
+  --color-border: #e5e0d8;
+  --color-border-light: #f0ede8;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #6b6560;
+  --color-text-tertiary: #9c9690;
+  --font-display: "Sora", "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --bg: #f7f5f2;
+  --fg: #1a1a1a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .leaflet-container {
@@ -27,7 +43,6 @@ body {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
-
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
 }
@@ -36,7 +51,6 @@ body {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
 }
-
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -45,7 +59,69 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
-
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in 0.4s ease-out forwards;
+}
+
+@keyframes count-up {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(193, 68, 14, 0.15); }
+  50% { box-shadow: 0 0 40px rgba(193, 68, 14, 0.3); }
+}
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(193, 68, 14, 0.2); }
+  50% { border-color: rgba(193, 68, 14, 0.5); }
+}
+
+::selection {
+  background: #c1440e;
+  color: white;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+input, textarea, button, select, a {
+  transition: all 0.2s ease;
+}
+
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid #c1440e;
+  outline-offset: 2px;
+}
+
+button:focus-visible, a:focus-visible {
+  outline: 2px solid #c1440e;
+  outline-offset: 2px;
+  border-radius: 8px;
 }
