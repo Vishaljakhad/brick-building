@@ -3,72 +3,118 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Truck, TrendingUp, Shield, Clock } from "lucide-react";
-import { BrickIcon, StackedBricks } from "@/components/brick-icon";
+import { Search, MapPin, Truck, ChevronRight } from "lucide-react";
 
-function KilnScene() {
+function MapMockup() {
   return (
-    <svg viewBox="0 0 500 380" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 500 360" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <rect width="500" height="360" rx="12" fill="#f7f5f2" />
+      <rect width="500" height="360" rx="12" fill="url(#mapBg)" />
+
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+          <path d="M30 0L0 0 0 30" fill="none" stroke="#e5e0d8" strokeWidth="0.5" />
+        </pattern>
+        <linearGradient id="mapBg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#f7f5f2" />
           <stop offset="100%" stopColor="#f0ede8" />
         </linearGradient>
-        <linearGradient id="kiln" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c1440e" />
-          <stop offset="100%" stopColor="#9a3308" />
-        </linearGradient>
-        <linearGradient id="brickGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#c1440e" />
-          <stop offset="50%" stopColor="#e86b2a" />
-          <stop offset="100%" stopColor="#9a3308" />
-        </linearGradient>
-        <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#e5e0d8" />
-          <stop offset="100%" stopColor="#d6d0c8" />
-        </linearGradient>
-        <linearGradient id="smoke" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#d6d0c8" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#f0ede8" stopOpacity="0" />
+        <linearGradient id="road" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#e5e0d8" stopOpacity="0" />
+          <stop offset="50%" stopColor="#d6d0c8" />
+          <stop offset="100%" stopColor="#e5e0d8" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <rect width="500" height="380" fill="url(#sky)" rx="16" />
-      <rect y="280" width="500" height="100" fill="url(#ground)" rx="0" />
-      <rect y="280" width="500" height="4" fill="#d6d0c8" />
 
-      <path d="M100 280l40-140h120l40 140" fill="url(#kiln)" opacity="0.85" />
-      <rect x="105" y="200" width="150" height="80" rx="6" fill="url(#brickGrad)" />
-      <rect x="105" y="200" width="150" height="80" rx="6" fill="rgba(0,0,0,0.05)" />
-      <path d="M120 220h120M120 240h120M120 260h120" stroke="rgba(0,0,0,0.12)" strokeWidth="1" />
-      <path d="M175 200v80" stroke="rgba(0,0,0,0.12)" strokeWidth="1" />
-      <path d="M105 280h150v8H105z" fill="#7a2806" opacity="0.5" />
-      <rect x="170" y="188" width="20" height="12" rx="3" fill="#7a2806" opacity="0.6" />
+      <rect width="500" height="360" fill="url(#grid)" opacity="0.5" />
 
-      <rect x="290" y="240" width="60" height="40" rx="3" fill="url(#brickGrad)" />
-      <rect x="294" y="248" width="24" height="14" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="322" y="248" width="24" height="14" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="294" y="264" width="24" height="14" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="322" y="264" width="24" height="14" rx="1" fill="rgba(255,255,255,0.06)" />
+      <path d="M0 180h500" stroke="url(#road)" strokeWidth="4" />
+      <path d="M250 0v360" stroke="url(#road)" strokeWidth="3" />
 
-      <rect x="370" y="245" width="55" height="35" rx="3" fill="url(#brickGrad)" />
-      <rect x="374" y="253" width="22" height="12" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="400" y="253" width="22" height="12" rx="1" fill="rgba(255,255,255,0.06)" />
+      <path d="M0 120h80q10 0 10 10v10q0 10 10 10h20" stroke="#d6d0c8" strokeWidth="2" fill="none" />
+      <path d="M500 240h-60q-10 0-10-10v-20" stroke="#d6d0c8" strokeWidth="2" fill="none" />
+      <path d="M120 0v40q0 10 10 10h30" stroke="#d6d0c8" strokeWidth="1.5" fill="none" />
+      <path d="M380 360v-50q0-10 10-10h20" stroke="#d6d0c8" strokeWidth="1.5" fill="none" />
 
-      <rect x="40" y="255" width="50" height="25" rx="3" fill="url(#brickGrad)" />
-      <rect x="44" y="261" width="20" height="10" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="68" y="261" width="20" height="10" rx="1" fill="rgba(255,255,255,0.06)" />
-      <rect x="120" y="275" width="120" height="5" rx="1" fill="#7a2806" opacity="0.3" />
+      <rect x="60" y="60" width="32" height="24" rx="4" fill="#e86b2a" opacity="0.3" />
+      <rect x="320" y="100" width="28" height="20" rx="3" fill="#e86b2a" opacity="0.25" />
+      <rect x="80" y="240" width="30" height="22" rx="4" fill="#e86b2a" opacity="0.2" />
+      <rect x="380" y="260" width="24" height="18" rx="3" fill="#e86b2a" opacity="0.3" />
 
-      <path d="M140 170c-6-3-15-2-20 2-4 3-6 8-4 12" stroke="url(#smoke)" strokeWidth="8" strokeLinecap="round" fill="none" opacity="0.4" />
-      <path d="M155 160c-5-4-14-4-20 0-4 3-5 8-3 12" stroke="url(#smoke)" strokeWidth="6" strokeLinecap="round" fill="none" opacity="0.3" />
+      <g transform="translate(200, 130)">
+        <circle cx="0" cy="0" r="22" fill="#c1440e" opacity="0.12" />
+        <circle cx="0" cy="0" r="14" fill="#c1440e" opacity="0.2" />
+        <circle cx="0" cy="0" r="8" fill="#c1440e" />
+        <circle cx="0" cy="0" r="3" fill="white" />
+      </g>
 
-      <rect x="220" y="270" width="60" height="10" rx="2" fill="#7a2806" opacity="0.4" />
+      <g transform="translate(130, 80)">
+        <circle cx="0" cy="0" r="16" fill="#c1440e" opacity="0.1" />
+        <circle cx="0" cy="0" r="10" fill="#c1440e" opacity="0.18" />
+        <circle cx="0" cy="0" r="5" fill="#c1440e" />
+        <circle cx="0" cy="0" r="2" fill="white" />
+      </g>
 
-      <circle cx="60" cy="260" r="3" fill="#c1440e" opacity="0.15" />
-      <circle cx="440" cy="255" r="3" fill="#c1440e" opacity="0.15" />
-      <circle cx="420" cy="260" r="2" fill="#c1440e" opacity="0.1" />
-      <circle cx="80" cy="258" r="2" fill="#c1440e" opacity="0.1" />
+      <g transform="translate(310, 180)">
+        <circle cx="0" cy="0" r="16" fill="#c1440e" opacity="0.1" />
+        <circle cx="0" cy="0" r="10" fill="#c1440e" opacity="0.18" />
+        <circle cx="0" cy="0" r="5" fill="#c1440e" />
+        <circle cx="0" cy="0" r="2" fill="white" />
+      </g>
+
+      <g transform="translate(370, 80)">
+        <circle cx="0" cy="0" r="16" fill="#c1440e" opacity="0.1" />
+        <circle cx="0" cy="0" r="10" fill="#c1440e" opacity="0.18" />
+        <circle cx="0" cy="0" r="5" fill="#c1440e" />
+        <circle cx="0" cy="0" r="2" fill="white" />
+      </g>
+
+      <g transform="translate(100, 190)">
+        <circle cx="0" cy="0" r="16" fill="#c1440e" opacity="0.1" />
+        <circle cx="0" cy="0" r="10" fill="#c1440e" opacity="0.18" />
+        <circle cx="0" cy="0" r="5" fill="#c1440e" />
+        <circle cx="0" cy="0" r="2" fill="white" />
+      </g>
+
+      <rect x="148" y="146" width="100" height="28" rx="6" fill="white" stroke="#e5e0d8" strokeWidth="1" />
+      <text x="198" y="164" textAnchor="middle" fill="#6b6560" fontSize="11" fontWeight="600">Rahim Bhata &amp; Bros</text>
+
+      <rect x="78" y="58" width="95" height="28" rx="6" fill="white" stroke="#e5e0d8" strokeWidth="1" />
+      <text x="125" y="76" textAnchor="middle" fill="#6b6560" fontSize="11" fontWeight="600">Karim Bricks &amp; Tiles</text>
+
+      <rect x="325" y="198" width="90" height="20" rx="4" fill="#c1440e" />
+      <text x="370" y="212" textAnchor="middle" fill="white" fontSize="10" fontWeight="700">5.2 km away</text>
+
+      <g transform="translate(20, 300)">
+        <rect width="160" height="44" rx="8" fill="white" stroke="#e5e0d8" strokeWidth="1" />
+        <circle cx="28" cy="22" r="10" fill="#c1440e" opacity="0.15" />
+        <text x="28" y="26" textAnchor="middle" fill="#c1440e" fontSize="12" fontWeight="bold">+</text>
+        <text x="48" y="19" fill="#1a1a1a" fontSize="11" fontWeight="600">4 more kilns nearby</text>
+        <text x="48" y="32" fill="#6b6560" fontSize="10">within 25 km radius</text>
+      </g>
+
+      <g transform="translate(340, 300)">
+        <rect width="140" height="44" rx="8" fill="#c1440e" />
+        <text x="70" y="22" textAnchor="middle" fill="white" fontSize="11" fontWeight="700">Find Bhatas Near Me</text>
+        <text x="70" y="36" textAnchor="middle" fill="white" fontSize="9" opacity="0.8">Use my location</text>
+      </g>
+
+      <rect x="0" y="0" width="500" height="360" rx="12" stroke="white" strokeWidth="2" fill="none" />
     </svg>
+  );
+}
+
+function AnimatedCounter({ value, suffix = "", label, icon }: { value: string; label: string; icon: React.ReactNode; suffix?: string }) {
+  return (
+    <div className="text-center">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-primary-lighter text-primary mb-2">
+        {icon}
+      </div>
+      <p className="text-xl font-bold text-text" style={{ fontFamily: "var(--font-sora), system-ui, sans-serif" }}>
+        {value}
+      </p>
+      <p className="text-xs text-text-tertiary font-medium mt-0.5">{label}</p>
+    </div>
   );
 }
 
@@ -115,43 +161,17 @@ export function AnimatedHero() {
               className="mt-8 flex flex-wrap gap-3"
             >
               <Link href="/register">
-                <Button size="lg" className="bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200 text-base px-6 animate-glow gap-2">
+                <Button size="lg" className="bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200 text-base px-6 gap-2">
                   <Search className="h-5 w-5" />
-                  Source Bricks Now
+                  I&apos;m a Buyer
                 </Button>
               </Link>
-              <Link href="/bhatas">
+              <Link href="/register?role=owner">
                 <Button variant="outline" size="lg" className="border-2 border-border hover:border-primary/40 hover:bg-primary-lighter transition-all duration-200 text-base px-6 gap-2 text-text-secondary hover:text-primary">
-                  <MapPin className="h-5 w-5" />
-                  Browse Kilns
+                  <Truck className="h-5 w-5" />
+                  I Own a Bhata
                 </Button>
               </Link>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-8 flex flex-wrap items-center gap-5 text-sm"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-lighter">
-                  <Truck className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-text-secondary"><strong className="text-text">10,000+</strong> loads delivered</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-lighter">
-                  <Shield className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-text-secondary"><strong className="text-text">Verified</strong> suppliers</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-lighter">
-                  <Clock className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-text-secondary"><strong className="text-text">Same-day</strong> delivery</span>
-              </div>
             </motion.div>
           </div>
 
@@ -162,51 +182,33 @@ export function AnimatedHero() {
             className="relative"
           >
             <div className="rounded-2xl border border-border bg-white shadow-xl shadow-black/5 overflow-hidden">
-              <div className="aspect-[5/4] relative">
-                <KilnScene />
+              <div className="aspect-[5/3.6] relative">
+                <MapMockup />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
-                  className="absolute -top-2 -right-2 rounded-full bg-primary px-3.5 py-1 text-xs font-bold text-white shadow-lg flex items-center gap-1.5"
+                  className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white shadow-lg flex items-center gap-1.5"
                 >
                   <span className="flex h-1.5 w-1.5 rounded-full bg-green-300" />
-                  LIVE
+                  LIVE MAP
                 </motion.div>
               </div>
-              <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
-                <div className="px-4 py-3.5 text-center">
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">Bhatas</p>
-                  <p className="text-xl font-bold text-text" style={{ fontFamily: "var(--font-sora), system-ui, sans-serif" }}>100+</p>
-                </div>
-                <div className="px-4 py-3.5 text-center">
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">Delivered</p>
-                  <p className="text-xl font-bold text-text" style={{ fontFamily: "var(--font-sora), system-ui, sans-serif" }}>50K+</p>
-                </div>
-                <div className="px-4 py-3.5 text-center">
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">Satisfaction</p>
-                  <p className="text-xl font-bold text-text" style={{ fontFamily: "var(--font-sora), system-ui, sans-serif" }}>99%</p>
-                </div>
-              </div>
             </div>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, type: "spring" }}
-              className="absolute -bottom-3 -left-3 rounded-xl bg-white border border-border px-5 py-2.5 shadow-lg hidden lg:flex items-center gap-3"
-            >
-              <div className="flex -space-x-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white ring-2 ring-white">S</div>
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-dark text-[10px] font-bold text-white ring-2 ring-white">R</div>
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-light text-[10px] font-bold text-white ring-2 ring-white">A</div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-text">Trusted by builders</p>
-                <p className="text-[11px] text-text-tertiary">across India</p>
-              </div>
-            </motion.div>
           </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+          className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4 rounded-xl border border-border bg-surface p-5"
+        >
+          <AnimatedCounter value="100+" label="Verified Bhatas" icon={<MapPin className="h-4 w-4" />} />
+          <AnimatedCounter value="50,000+" label="Bricks Delivered" icon={<Truck className="h-4 w-4" />} />
+          <AnimatedCounter value="99%" label="Satisfaction Rate" icon={<Search className="h-4 w-4" />} />
+          <AnimatedCounter value="2,500+" label="Happy Builders" icon={<ChevronRight className="h-4 w-4" />} />
+        </motion.div>
       </div>
     </section>
   );
