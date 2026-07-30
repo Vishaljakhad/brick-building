@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("CUSTOMER")
+  phone         String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+
+  kilns  Bhata[]
+  orders Order[]
+
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Bhata {
+  id          String   @id @default(cuid())
+  name        String
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+  address     String
+  latitude    Float
+  longitude   Float
+  phone       String?
+  description String?
+  image       String?
+  isActive    Boolean  @default(true)
+
+  brickPrices BrickPrice[]
+  orders      Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BrickType {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  unit        String   @default("pieces")
+  basePrice   Float
+  image       String?
+
+  brickPrices BrickPrice[]
+  orderItems  OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BrickPrice {
+  id          String   @id @default(cuid())
+  bhataId     String
+  bhata       Bhata     @relation(fields: [bhataId], references: [id], onDelete: Cascade)
+  brickTypeId String
+  brickType   BrickType @relation(fields: [brickTypeId], references: [id], onDelete: Cascade)
+  price       Float
+  stock       Int?
+  isAvailable Boolean   @default(true)
+
+  @@unique([bhataId, brickTypeId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  orderNumber        String      @unique
+  customerId         String
+  customer           User        @relation(fields: [customerId], references: [id])
+  bhataId            String
+  bhata              Bhata       @relation(fields: [bhataId], references: [id])
+  status             String      @default("PENDING")
+  totalAmount        Float
+  paymentMethod      String      @default("COD")
+  paymentStatus      String      @default("UNPAID")
+  deliveryAddress    String
+  deliveryLatitude   Float?
+  deliveryLongitude  Float?
+  truckCapacity      String?
+  deliveryEstimate   String?
+  notes              String?
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  brickTypeId String
+  brickType   BrickType @relation(fields: [brickTypeId], references: [id])
+  quantity    Int
+  unitPrice   Float
+
+  createdAt DateTime @default(now())
+}
