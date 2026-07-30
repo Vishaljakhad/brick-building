@@ -3,12 +3,13 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Package } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
+import { BrickIcon, StackedBricks, AnimatedBricks } from "@/components/brick-icon";
 
 export function AnimatedHero() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-orange-50">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRjMC0yLjIgMS44LTQgNC00czQgMS44IDQgNC0xLjggNC00IDQtNC0xLjgtNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+      <AnimatedBricks />
 
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -19,7 +20,7 @@ export function AnimatedHero() {
               transition={{ duration: 0.4 }}
               className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/80 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-orange-700 shadow-sm"
             >
-              <Package className="h-4 w-4" />
+              <BrickIcon size={18} animate={false} />
               India&apos;s Brick Marketplace
             </motion.div>
 
@@ -93,21 +94,28 @@ export function AnimatedHero() {
             className="hidden lg:block"
           >
             <div className="relative">
+              <motion.div
+                animate={{ rotate: [0, 1, -1, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-6 -right-6 z-10"
+              >
+                <div className="rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 p-4 shadow-xl shadow-orange-300">
+                  <BrickIcon size={32} />
+                </div>
+              </motion.div>
+
               <div className="rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-sm p-2 shadow-xl">
                 <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-orange-100 via-orange-50 to-amber-50 p-8 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjAgMjB2MTBoMTB2LTEweiIgc3Ryb2tlPSIjZWE1ODBjIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4=')] opacity-20" />
-                  <div className="text-center relative">
-                    <motion.div
-                      animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-600 to-amber-600 shadow-xl shadow-orange-300"
-                    >
-                      <Package className="h-12 w-12 text-white" />
-                    </motion.div>
+                  <div className="absolute inset-0 opacity-10" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='5' y='35' width='90' height='30' rx='2' fill='%23c2410c' opacity='0.3'/%3E%3C/svg%3E")`,
+                    backgroundSize: "60px 60px"
+                  }} />
+                  <div className="text-center relative z-10">
+                    <StackedBricks count={4} size={36} />
                     <motion.p
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.8, type: "spring" }}
+                      transition={{ delay: 1, type: "spring" }}
                       className="mt-4 text-3xl font-bold text-orange-800"
                     >
                       50,000+
@@ -116,18 +124,20 @@ export function AnimatedHero() {
                   </div>
                 </div>
               </div>
+
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1, type: "spring" }}
-                className="absolute -bottom-4 -right-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-3 text-white shadow-xl shadow-orange-300"
+                transition={{ delay: 1.2, type: "spring" }}
+                className="absolute -bottom-4 -left-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-3 text-white shadow-xl shadow-orange-300"
               >
                 <p className="text-sm font-semibold">Trusted by 100s of builders</p>
               </motion.div>
+
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
+                transition={{ delay: 1.4 }}
                 className="absolute -top-3 -left-3 rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-lg"
               >
                 LIVE

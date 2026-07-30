@@ -7,6 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BrickBuilding - Find & Order Bricks from Local Bhatas",
   description: "Order bricks from the nearest brick kilns. Compare prices, check truck capacity, and get delivery estimates.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({

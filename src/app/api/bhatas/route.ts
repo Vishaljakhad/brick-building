@@ -5,6 +5,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
+  const radius = searchParams.get("radius");
 
   const bhatas = await prisma.bhata.findMany({
     where: { isActive: true },
@@ -19,17 +20,24 @@ export async function GET(req: Request) {
     orderBy: { name: "asc" },
   });
 
+  let result = bhatas;
+
   if (lat && lng) {
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
-    bhatas.sort((a, b) => {
-      const distA = calculateDistance(userLat, userLng, a.latitude, a.longitude);
-      const distB = calculateDistance(userLat, userLng, b.latitude, b.longitude);
-      return distA - distB;
-    });
+    const maxRadius = radius ? parseFloat(radius) : Infinity;
+
+    const withDistance = bhatas.map((b) => ({
+      ...b,
+      distance: calculateDistance(userLat, userLng, b.latitude, b.longitude),
+    }));
+
+    result = withDistance
+      .filter((b) => b.distance <= maxRadius)
+      .sort((a, b) => a.distance - b.distance);
   }
 
-  return NextResponse.json(bhatas);
+  return NextResponse.json(result);
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {

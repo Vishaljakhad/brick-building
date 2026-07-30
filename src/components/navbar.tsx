@@ -7,7 +7,8 @@ import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./ui/button";
-import { Menu, X, LayoutDashboard, LogOut, ToyBrick, Search } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogOut, Search } from "lucide-react";
+import { BrickIcon } from "@/components/brick-icon";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -39,7 +40,7 @@ export function Navbar() {
               whileHover={{ rotate: -10, scale: 1.1 }}
               className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-600 to-amber-600 shadow-md shadow-orange-200"
             >
-              <ToyBrick className="h-5 w-5 text-white" />
+              <BrickIcon size={22} animate={false} />
             </motion.div>
             <span className="text-xl font-bold text-gray-900">
               Brick<span className="text-orange-600">Building</span>

@@ -41,6 +41,7 @@ export default function BhatasPage() {
   const [bhatas, setBhatas] = useState<Bhata[]>([]);
   const [search, setSearch] = useState("");
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [radius, setRadius] = useState(100);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,30 +63,18 @@ export default function BhatasPage() {
     if (userLocation) {
       fetchBhatas();
     }
-  }, [userLocation]);
+  }, [userLocation, radius]);
 
   const fetchBhatas = async () => {
     setLoading(true);
     try {
       const url = userLocation
-        ? `/api/bhatas?lat=${userLocation[0]}&lng=${userLocation[1]}`
+        ? `/api/bhatas?lat=${userLocation[0]}&lng=${userLocation[1]}&radius=${radius}`
         : "/api/bhatas";
       const res = await fetch(url);
       const data = await res.json();
 
-      const withDistance = data.map((b: Bhata) => {
-        if (userLocation) {
-          b.distance = calculateDistance(
-            userLocation[0],
-            userLocation[1],
-            b.latitude,
-            b.longitude
-          );
-        }
-        return b;
-      });
-
-      setBhatas(withDistance);
+      setBhatas(data);
     } catch (error) {
       console.error("Failed to fetch bhatas:", error);
     }
@@ -125,7 +114,7 @@ export default function BhatasPage() {
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <Input
@@ -134,6 +123,37 @@ export default function BhatasPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500 font-medium">Radius:</span>
+          {[25, 50, 100, 200].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRadius(r)}
+              className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                radius === r
+                  ? "bg-orange-600 text-white border-orange-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+              }`}
+            >
+              {r} km
+            </button>
+          ))}
+          <button
+            onClick={() => setRadius(9999)}
+            className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+              radius === 9999
+                ? "bg-orange-600 text-white border-orange-600"
+                : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+            }`}
+          >
+            All
+          </button>
+          {!loading && (
+            <span className="ml-auto text-sm text-gray-400">
+              {bhatas.length} bhatas found
+            </span>
+          )}
         </div>
       </div>
 
