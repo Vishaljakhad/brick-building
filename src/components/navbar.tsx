@@ -72,16 +72,16 @@ export function Navbar() {
                     "relative px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                     isActive
                       ? "text-primary"
-                      : "text-text-secondary hover:text-text hover:bg-surface-elevated"
+                      : "text-text-secondary hover:text-text"
                   )}
                 >
                   {link.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full"
-                    />
-                  )}
+                  <span className={cn(
+                    "absolute bottom-0 left-3 right-3 h-0.5 rounded-full transition-all duration-300",
+                    isActive
+                      ? "bg-primary scale-x-100"
+                      : "bg-primary scale-x-0 hover:scale-x-100"
+                  )} />
                 </Link>
               );
             })}
@@ -110,7 +110,7 @@ export function Navbar() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-border">
+              <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="text-text-secondary">Sign In</Button>
                 </Link>

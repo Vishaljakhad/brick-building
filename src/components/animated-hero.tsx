@@ -13,14 +13,12 @@ function MapMockup() {
           <stop offset="0%" stopColor="#f4f1ec" />
           <stop offset="100%" stopColor="#ebe7e0" />
         </linearGradient>
-        <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#dce4e8" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#d0dae0" stopOpacity="0.3" />
-        </linearGradient>
-        <linearGradient id="park" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#dce8d4" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#d0e0c8" stopOpacity="0.2" />
-        </linearGradient>
+        <pattern id="dotGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r="0.8" fill="#d6d0c8" opacity="0.4" />
+        </pattern>
+        <pattern id="dotGridDense" width="12" height="12" patternUnits="userSpaceOnUse">
+          <circle cx="6" cy="6" r="0.6" fill="#d6d0c8" opacity="0.3" />
+        </pattern>
         <filter id="pinShadow">
           <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#c1440e" floodOpacity="0.3" />
         </filter>
@@ -30,21 +28,16 @@ function MapMockup() {
       </defs>
 
       <rect width="500" height="360" rx="12" fill="url(#mapBg2)" />
+      <rect width="500" height="360" rx="12" fill="url(#dotGrid)" />
 
-      <ellipse cx="180" cy="260" rx="80" ry="40" fill="url(#water)" />
-      <ellipse cx="420" cy="100" rx="50" ry="25" fill="url(#water)" />
+      <rect x="40" y="70" width="70" height="50" rx="8" fill="#dce8d4" opacity="0.5" stroke="#c4d4b8" strokeWidth="0.8" />
+      <rect x="320" y="240" width="90" height="55" rx="8" fill="#dce8d4" opacity="0.5" stroke="#c4d4b8" strokeWidth="0.8" />
+      <text x="400" y="272" textAnchor="middle" fill="#9aac8c" fontSize="8" fontWeight="600">GREEN PARK</text>
 
-      <ellipse cx="80" cy="120" rx="40" ry="25" fill="url(#park)" />
-      <ellipse cx="350" cy="280" rx="55" ry="30" fill="url(#park)" />
+      <rect x="150" y="230" width="55" height="40" rx="4" fill="#e8e4dc" opacity="0.6" stroke="#d6d0c8" strokeWidth="0.8" />
+      <rect x="380" y="60" width="45" height="35" rx="4" fill="#e8e4dc" opacity="0.6" stroke="#d6d0c8" strokeWidth="0.8" />
 
-      <path d="M0 180 q60 -15 120 0 q60 15 130 0 q70 -15 140 0 q55 10 110 -5" stroke="#d6d0c8" strokeWidth="1" fill="none" opacity="0.5" />
-      <path d="M0 200 q70 10 140 -5 q70 -15 130 5 q60 20 130 -10" stroke="#d6d0c8" strokeWidth="0.8" fill="none" opacity="0.35" />
-      <path d="M0 150 q50 -5 100 5 q50 10 110 -5 q60 -15 120 0 q60 15 170 -10" stroke="#d6d0c8" strokeWidth="0.8" fill="none" opacity="0.3" />
-
-      <path d="M80 80 q20 -10 50 -5 q30 5 60 -8" stroke="#d6d0c8" strokeWidth="0.8" fill="none" opacity="0.25" />
-      <path d="M320 300 q40 -8 80 0 q40 8 100 -12" stroke="#d6d0c8" strokeWidth="0.8" fill="none" opacity="0.25" />
-
-      <rect x="0" y="0" width="500" height="360" rx="12" fill="url(#mapBg2)" opacity="0.08" />
+      <rect x="0" y="0" width="500" height="360" rx="12" fill="url(#dotGridDense)" />
 
       <g transform="translate(200, 130)" filter="url(#pinShadow)">
         <circle cx="0" cy="0" r="26" fill="#c1440e" opacity="0.08" />
@@ -83,21 +76,6 @@ function MapMockup() {
         <circle cx="0" cy="0" r="9" fill="#c1440e" opacity="0.12" />
         <circle cx="0" cy="0" r="5" fill="#c1440e" />
         <circle cx="0" cy="0" r="2" fill="white" />
-      </g>
-
-      <g transform="translate(60, 100)">
-        <rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="#c1440e" strokeWidth="1.5" opacity="0.35" />
-        <rect x="-3" y="-3" width="6" height="6" rx="1" fill="#c1440e" opacity="0.25" />
-      </g>
-
-      <g transform="translate(340, 250)">
-        <rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="#c1440e" strokeWidth="1.5" opacity="0.35" />
-        <rect x="-3" y="-3" width="6" height="6" rx="1" fill="#c1440e" opacity="0.25" />
-      </g>
-
-      <g transform="translate(440, 200)">
-        <rect x="-5" y="-5" width="10" height="10" rx="2" fill="none" stroke="#c1440e" strokeWidth="1.5" opacity="0.25" />
-        <rect x="-2.5" y="-2.5" width="5" height="5" rx="1" fill="#c1440e" opacity="0.15" />
       </g>
 
       <g transform="translate(20, 300)">
@@ -182,7 +160,7 @@ export function AnimatedHero() {
                 </Button>
               </Link>
               <Link href="/register?role=owner">
-                <Button variant="outline" size="lg" className="border-2 border-border hover:border-primary/40 hover:bg-primary-lighter hover:scale-[1.02] transition-all duration-200 text-base px-6 gap-2 text-text hover:text-primary">
+                <Button variant="outline" size="lg" className="border-2 border-text-secondary hover:border-primary/50 hover:bg-primary-lighter hover:scale-[1.02] transition-all duration-200 text-base px-6 gap-2 text-text-secondary hover:text-primary">
                   <Truck className="h-5 w-5" />
                   I Own a Bhata
                 </Button>
@@ -196,7 +174,7 @@ export function AnimatedHero() {
             transition={{ duration: 0.6, delay: 0.25 }}
             className="relative"
           >
-            <div className="rounded-2xl border border-border bg-white shadow-xl shadow-black/5 overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+            <div className="rounded-2xl border border-border bg-white shadow-lg shadow-black/5 overflow-hidden hover:scale-[1.01] transition-transform duration-300">
               <div className="aspect-[5/3.6] relative">
                 <MapMockup />
                 <motion.div
