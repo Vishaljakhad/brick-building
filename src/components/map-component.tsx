@@ -18,6 +18,7 @@ interface MapMarker {
   longitude: number;
   address: string;
   priceRange?: string;
+  source?: "db" | "osm";
 }
 
 interface MapComponentProps {
@@ -70,6 +71,13 @@ export function MapComponent({
       iconAnchor: [16, 16],
     });
 
+    const osmIcon = new L.DivIcon({
+      className: "custom-marker-osm",
+      html: `<div style="background:#16a34a;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:13px;font-weight:bold;">B</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+
     const selectedIcon = new L.DivIcon({
       className: "custom-marker-selected",
       html: `<div style="background:#1d4ed8;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 12px rgba(0,0,0,0.4);font-size:16px;font-weight:bold;">B</div>`,
@@ -79,8 +87,9 @@ export function MapComponent({
 
     markers.forEach((marker) => {
       const isSelected = marker.id === selectedId;
+      const isOsm = marker.source === "osm";
       const leafletMarker = L.marker([marker.latitude, marker.longitude], {
-        icon: isSelected ? selectedIcon : orangeIcon,
+        icon: isSelected ? selectedIcon : isOsm ? osmIcon : orangeIcon,
       })
         .addTo(mapRef.current!)
         .bindPopup(
@@ -88,8 +97,8 @@ export function MapComponent({
             <strong style="font-size:14px;color:#1f2937">${marker.name}</strong><br/>
             <span style="font-size:12px;color:#6b7280">${marker.address}</span>
             ${marker.priceRange ? `<br/><span style="font-size:12px;color:#ea580c;font-weight:600">${marker.priceRange}</span>` : ""}
-            <br/><br/>
-            <a href="/bhatas/${marker.id}" style="display:inline-block;padding:4px 12px;background:#ea580c;color:white;border-radius:6px;font-size:12px;text-decoration:none">View Details</a>
+            ${isOsm ? `<br/><span style="font-size:11px;color:#16a34a;font-weight:600">Live · OpenStreetMap</span>` : ""}
+            ${!isOsm ? `<br/><br/><a href="/bhatas/${marker.id}" style="display:inline-block;padding:4px 12px;background:#ea580c;color:white;border-radius:6px;font-size:12px;text-decoration:none">View Details</a>` : ""}
           </div>`
         );
 

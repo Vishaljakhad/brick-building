@@ -17,7 +17,17 @@ import { motion } from "framer-motion";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { Search, MapPin, Truck, Navigation } from "lucide-react";
 
-interface Bhata {
+interface LiveBhata {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  source: "osm";
+  distance?: number;
+}
+
+interface RegisteredBhata {
   id: string;
   name: string;
   address: string;
@@ -35,7 +45,10 @@ interface Bhata {
   }[];
   _count: { orders: number };
   distance?: number;
+  source?: "db";
 }
+
+type Bhata = RegisteredBhata | LiveBhata;
 
 export default function BhatasPage() {
   const [bhatas, setBhatas] = useState<Bhata[]>([]);
@@ -68,13 +81,20 @@ export default function BhatasPage() {
   const fetchBhatas = async () => {
     setLoading(true);
     try {
-      const url = userLocation
-        ? `/api/bhatas?lat=${userLocation[0]}&lng=${userLocation[1]}&radius=${radius}`
-        : "/api/bhatas";
-      const res = await fetch(url);
-      const data = await res.json();
+      const base = userLocation
+        ? `?lat=${userLocation[0]}&lng=${userLocation[1]}&radius=${radius}`
+        : "";
+      const [dbRes, liveRes] = await Promise.all([
+        fetch(`/api/bhatas${base}`),
+        fetch(`/api/bhatas/nearby${base}`),
+      ]);
+      const dbData = (await dbRes.json()) as RegisteredBhata[];
+      const liveData = (await liveRes.json()) as LiveBhata[];
 
-      setBhatas(data);
+      setBhatas([
+        ...dbData.map((b) => ({ ...b, source: "db" as const })),
+        ...liveData,
+      ]);
     } catch (error) {
       console.error("Failed to fetch bhatas:", error);
     }
@@ -87,7 +107,7 @@ export default function BhatasPage() {
     return (
       b.name.toLowerCase().includes(q) ||
       b.address.toLowerCase().includes(q) ||
-      b.brickPrices.some((p) => p.brickType.name.toLowerCase().includes(q))
+      (b.source !== "osm" && b.brickPrices.some((p) => p.brickType.name.toLowerCase().includes(q)))
     );
   });
 
@@ -97,8 +117,9 @@ export default function BhatasPage() {
     latitude: b.latitude,
     longitude: b.longitude,
     address: b.address,
+    source: b.source,
     priceRange:
-      b.brickPrices.length > 0
+      b.source !== "osm" && b.brickPrices.length > 0
         ? `${formatPrice(Math.min(...b.brickPrices.map((p) => p.price)))} - ${formatPrice(
             Math.max(...b.brickPrices.map((p) => p.price))
           )}`
@@ -124,7 +145,7 @@ export default function BhatasPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-gray-500 font-medium">Radius:</span>
           {[25, 50, 100, 200].map((r) => (
             <button
@@ -154,6 +175,16 @@ export default function BhatasPage() {
               {bhatas.length} bhatas found
             </span>
           )}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-white shadow-sm" style={{ background: "#ea580c" }} />
+            Registered kiln
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-white shadow-sm" style={{ background: "#16a34a" }} />
+            Live kiln (OpenStreetMap)
+          </span>
         </div>
       </div>
 
@@ -188,73 +219,89 @@ export default function BhatasPage() {
               </motion.div>
               <h3 className="mt-4 text-xl font-semibold text-gray-900">No bhatas found</h3>
               <p className="mt-2 text-gray-500">
-                {search ? "Try a different search term" : "No kilns registered in your area yet"}
+                {search ? "Try a different search term" : "No kilns registered or mapped in your area yet"}
               </p>
             </CardContent>
           </Card>
         </motion.div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((bhata, index) => (
-            <motion.div
-              key={bhata.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Link href={`/bhatas/${bhata.id}`}>
-                <Card className="h-full transition-all duration-300 hover:shadow-xl hover:border-orange-300 hover:-translate-y-1 cursor-pointer group">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-700 transition-colors">{bhata.name}</h3>
-                        <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {bhata.address}
-                        </p>
-                      </div>
+          {filtered.map((bhata, index) => {
+            const isLive = bhata.source === "osm";
+            const card = (
+              <Card className={`h-full transition-all duration-300 ${isLive ? "" : "hover:shadow-xl hover:border-orange-300 hover:-translate-y-1 cursor-pointer group"}`}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{bhata.name}</h3>
+                      <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {bhata.address}
+                      </p>
                     </div>
-
-                    {bhata.distance !== undefined && (
-                      <div className="mt-3 flex items-center gap-1 text-sm font-medium text-orange-600">
-                        <Navigation className="h-4 w-4" />
-                        {bhata.distance.toFixed(1)} km away
-                      </div>
+                    {isLive && (
+                      <Badge className="shrink-0 bg-green-600">Live</Badge>
                     )}
+                  </div>
 
-                    <div className="mt-4 space-y-2">
-                      {bhata.brickPrices.slice(0, 3).map((price) => (
-                        <div
-                          key={price.id}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 group-hover:bg-orange-50 transition-colors"
-                        >
-                          <span className="text-sm font-medium text-gray-700">
-                            {price.brickType.name}
-                          </span>
-                          <span className="text-sm font-bold text-orange-600">
-                            {formatPrice(price.price)}
-                          </span>
-                        </div>
-                      ))}
-                      {bhata.brickPrices.length > 3 && (
-                        <p className="text-xs text-gray-400 text-center">
-                          +{bhata.brickPrices.length - 3} more brick types
-                        </p>
-                      )}
+                  {bhata.distance !== undefined && (
+                    <div className="mt-3 flex items-center gap-1 text-sm font-medium text-orange-600">
+                      <Navigation className="h-4 w-4" />
+                      {bhata.distance.toFixed(1)} km away
                     </div>
+                  )}
 
-                    <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-                      <span>{bhata.owner.name}</span>
-                      <span className="flex items-center gap-1">
-                        <Truck className="h-3 w-3" />
-                        {bhata._count.orders} orders
-                      </span>
+                  {isLive ? (
+                    <div className="mt-4 rounded-lg bg-green-50 px-3 py-3 text-sm text-green-700">
+                      Found live on OpenStreetMap. Not yet registered on BrickBuilding — contact us to claim this kiln and list your prices.
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
+                  ) : (
+                    <>
+                      <div className="mt-4 space-y-2">
+                        {bhata.brickPrices.slice(0, 3).map((price) => (
+                          <div
+                            key={price.id}
+                            className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 group-hover:bg-orange-50 transition-colors"
+                          >
+                            <span className="text-sm font-medium text-gray-700">
+                              {price.brickType.name}
+                            </span>
+                            <span className="text-sm font-bold text-orange-600">
+                              {formatPrice(price.price)}
+                            </span>
+                          </div>
+                        ))}
+                        {bhata.brickPrices.length > 3 && (
+                          <p className="text-xs text-gray-400 text-center">
+                            +{bhata.brickPrices.length - 3} more brick types
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                        <span>{bhata.owner.name}</span>
+                        <span className="flex items-center gap-1">
+                          <Truck className="h-3 w-3" />
+                          {bhata._count.orders} orders
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            );
+
+            return (
+              <motion.div
+                key={bhata.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                {isLive ? card : <Link href={`/bhatas/${bhata.id}`}>{card}</Link>}
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
