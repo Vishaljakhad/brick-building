@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertBanner } from "@/components/ui/alert";
 import { formatPrice, calculateDistance } from "@/lib/utils";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -62,6 +63,7 @@ export default function BhataDetailPage() {
 
   // Order form
   const [orderItems, setOrderItems] = useState<Record<string, number>>({});
+  const [quantityErrors, setQuantityErrors] = useState<Record<string, string>>({});
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliverToCurrent, setDeliverToCurrent] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("COD");
@@ -70,6 +72,19 @@ export default function BhataDetailPage() {
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [addressError, setAddressError] = useState("");
+
+  const fetchBhata = async () => {
+    try {
+      const res = await fetch(`/api/bhatas`);
+      const bhatas = await res.json();
+      const found = bhatas.find((b: { id: string }) => b.id === id);
+      setBhata(found || null);
+    } catch (error) {
+      console.error("Failed to fetch bhata:", error);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchBhata();
@@ -84,27 +99,16 @@ export default function BhataDetailPage() {
 
   useEffect(() => {
     if (bhata && userLocation) {
-      const dist = calculateDistance(
-        userLocation[0],
-        userLocation[1],
-        bhata.latitude,
-        bhata.longitude
+      setDistance(
+        calculateDistance(
+          userLocation[0],
+          userLocation[1],
+          bhata.latitude,
+          bhata.longitude
+        )
       );
-      setDistance(dist);
     }
   }, [bhata, userLocation]);
-
-  const fetchBhata = async () => {
-    try {
-      const res = await fetch(`/api/bhatas`);
-      const bhatas = await res.json();
-      const found = bhatas.find((b: any) => b.id === id);
-      setBhata(found || null);
-    } catch (error) {
-      console.error("Failed to fetch bhata:", error);
-    }
-    setLoading(false);
-  };
 
   const availableBricks = bhata?.brickPrices.filter((bp) => bp.isAvailable) || [];
 
@@ -117,6 +121,40 @@ export default function BhataDetailPage() {
   const truckCapacity = TRUCK_TYPES.find((t) => t.name === selectedTruck);
   const exceedsCapacity = truckCapacity ? totalQuantity > truckCapacity.capacity : false;
 
+  const handleQuantityChange = (priceId: string, value: string) => {
+    const bp = availableBricks.find((b) => b.id === priceId);
+    const num = parseInt(value);
+
+    setOrderItems((prev) => {
+      const next = { ...prev };
+      if (value === "" || Number.isNaN(num) || num <= 0) {
+        delete next[priceId];
+      } else {
+        next[priceId] = num;
+      }
+      return next;
+    });
+
+    if (value === "" || Number.isNaN(num) || num <= 0) {
+      setQuantityErrors((prev) => {
+        const next = { ...prev };
+        delete next[priceId];
+        return next;
+      });
+    } else if (bp?.stock !== null && bp?.stock !== undefined && num > bp.stock) {
+      setQuantityErrors((prev) => ({
+        ...prev,
+        [priceId]: `Only ${bp.stock} in stock`,
+      }));
+    } else {
+      setQuantityErrors((prev) => {
+        const next = { ...prev };
+        delete next[priceId];
+        return next;
+      });
+    }
+  };
+
   const handleOrder = async () => {
     if (!session?.user) {
       toast.error("Please sign in to place an order");
@@ -124,13 +162,33 @@ export default function BhataDetailPage() {
       return;
     }
 
-    if (totalQuantity === 0) {
+    const entries = Object.entries(orderItems).filter(([, qty]) => qty > 0);
+
+    if (entries.length === 0) {
       toast.error("Please add at least one brick type to your order");
       return;
     }
 
-    if (!deliveryAddress && !deliverToCurrent) {
-      toast.error("Please provide a delivery address");
+    let valid = true;
+    const nextErrors: Record<string, string> = {};
+    for (const [priceId, qty] of entries) {
+      const bp = availableBricks.find((b) => b.id === priceId);
+      if (bp?.stock !== null && bp?.stock !== undefined && qty > bp.stock) {
+        nextErrors[priceId] = `Only ${bp.stock} in stock`;
+        valid = false;
+      }
+    }    setQuantityErrors(nextErrors);
+
+    const trimmedAddress = deliveryAddress.trim();
+    if (!deliverToCurrent && trimmedAddress.length < 10) {
+      setAddressError("Please provide a valid delivery address (min 10 characters)");
+      valid = false;
+    } else {
+      setAddressError("");
+    }
+
+    if (!valid) {
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
@@ -138,12 +196,10 @@ export default function BhataDetailPage() {
     setError("");
 
     try {
-      const items = Object.entries(orderItems)
-        .filter(([, qty]) => qty > 0)
-        .map(([priceId, qty]) => {
-          const bp = availableBricks.find((b) => b.id === priceId);
-          return { brickTypeId: bp!.brickType.id, quantity: qty };
-        });
+      const items = entries.map(([priceId, qty]) => {
+        const bp = availableBricks.find((b) => b.id === priceId);
+        return { brickTypeId: bp!.brickType.id, quantity: qty };
+      });
 
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -151,7 +207,7 @@ export default function BhataDetailPage() {
         body: JSON.stringify({
           bhataId: id,
           items,
-          deliveryAddress: deliverToCurrent ? "Deliver to my location" : deliveryAddress,
+          deliveryAddress: deliverToCurrent ? "Deliver to my location" : trimmedAddress,
           deliveryLatitude: userLocation?.[0],
           deliveryLongitude: userLocation?.[1],
           paymentMethod,
@@ -162,6 +218,7 @@ export default function BhataDetailPage() {
 
       if (!res.ok) {
         const data = await res.json();
+        setError(data.error || "Failed to place order");
         toast.error(data.error || "Failed to place order");
         setOrdering(false);
         return;
@@ -170,6 +227,7 @@ export default function BhataDetailPage() {
       toast.success("Order placed successfully!");
       setOrderSuccess(true);
     } catch {
+      setError("Something went wrong. Please try again.");
       toast.error("Something went wrong. Please try again.");
       setOrdering(false);
     }
@@ -365,24 +423,28 @@ export default function BhataDetailPage() {
                 <div>
                   <h4 className="mb-2 text-sm font-medium text-gray-700">Select Quantities</h4>
                   {availableBricks.map((bp) => (
-                    <div key={bp.id} className="mb-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900 truncate">{bp.brickType.name}</p>
-                        <p className="text-xs text-orange-600">{formatPrice(bp.price)} each</p>
+                    <div key={bp.id} className="mb-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">{bp.brickType.name}</p>
+                          <p className="text-xs text-orange-600">{formatPrice(bp.price)} each</p>
+                        </div>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="Qty"
+                          className="w-24 text-center"
+                          value={orderItems[bp.id] || ""}
+                          onChange={(e) => handleQuantityChange(bp.id, e.target.value)}
+                          error={!!quantityErrors[bp.id]}
+                        />
                       </div>
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="Qty"
-                        className="w-24 text-center"
-                        value={orderItems[bp.id] || ""}
-                        onChange={(e) =>
-                          setOrderItems({
-                            ...orderItems,
-                            [bp.id]: parseInt(e.target.value) || 0,
-                          })
-                        }
-                      />
+                      {quantityErrors[bp.id] && (
+                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
+                          {quantityErrors[bp.id]}
+                        </p>
+                      )}
                     </div>
                   ))}
                   {availableBricks.length === 0 && (
@@ -436,14 +498,17 @@ export default function BhataDetailPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Delivery Address
+                    Delivery Address <span className="text-red-500">*</span>
                   </label>
                   {userLocation && (
                     <label className="mb-2 flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={deliverToCurrent}
-                        onChange={(e) => setDeliverToCurrent(e.target.checked)}
+                        onChange={(e) => {
+                          setDeliverToCurrent(e.target.checked);
+                          setAddressError("");
+                        }}
                         className="rounded border-gray-300"
                       />
                       Deliver to my current location
@@ -451,11 +516,16 @@ export default function BhataDetailPage() {
                   )}
                   {!deliverToCurrent && (
                     <Input
-                      placeholder="Enter delivery address"
+                      placeholder="Enter full delivery address (min 10 characters)"
                       value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      onChange={(e) => {
+                        setDeliveryAddress(e.target.value);
+                        if (addressError) setAddressError("");
+                      }}
+                      error={!!addressError}
                     />
                   )}
+                  {addressError && <p className="mt-1 text-xs text-red-600">{addressError}</p>}
                 </div>
 
                 <div>
@@ -480,9 +550,11 @@ export default function BhataDetailPage() {
                 </div>
 
                 {error && (
-                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
-                    {error}
-                  </div>
+                  <AlertBanner
+                    variant="error"
+                    message={error}
+                    onClose={() => setError("")}
+                  />
                 )}
 
                 <Button

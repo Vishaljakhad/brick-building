@@ -2,8 +2,7 @@ export const ORDER_STATUS = {
   PENDING: "Pending",
   CONFIRMED: "Confirmed",
   PROCESSING: "Processing",
-  LOADED: "Loaded",
-  SHIPPED: "Shipped",
+  IN_TRANSIT: "In Transit",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
 } as const;
@@ -38,8 +37,7 @@ export const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800 border-yellow-300",
   CONFIRMED: "bg-blue-100 text-blue-800 border-blue-300",
   PROCESSING: "bg-indigo-100 text-indigo-800 border-indigo-300",
-  LOADED: "bg-purple-100 text-purple-800 border-purple-300",
-  SHIPPED: "bg-orange-100 text-orange-800 border-orange-300",
+  IN_TRANSIT: "bg-purple-100 text-purple-800 border-purple-300",
   DELIVERED: "bg-green-100 text-green-800 border-green-300",
   CANCELLED: "bg-red-100 text-red-800 border-red-300",
 };

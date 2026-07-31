@@ -5,6 +5,15 @@ import { auth } from "@/lib/auth";
 const ALLOWED_STATUS = ["PENDING", "CONFIRMED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"];
 const ALLOWED_PAYMENT_STATUS = ["UNPAID", "PAID", "REFUNDED"];
 
+// Allowed status transitions per role (undefined = any of ALLOWED_STATUS)
+const ROLE_STATUS_RULES: Record<string, string[]> = {
+  ADMIN: ALLOWED_STATUS,
+  OWNER: ["CONFIRMED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"],
+  CUSTOMER: ["CANCELLED"],
+};
+
+const STATUS_FLOW = ["PENDING", "CONFIRMED", "PROCESSING", "IN_TRANSIT", "DELIVERED"];
+
 async function canAccessOrder(order: { customerId: string; bhataId: string }, role: string, userId: string): Promise<boolean> {
   if (role === "ADMIN") return true;
   if (role === "CUSTOMER") return order.customerId === userId;
@@ -85,7 +94,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const existing = await prisma.order.findUnique({
     where: { id: (await params).id },
-    select: { id: true, customerId: true, bhataId: true },
+    select: { id: true, customerId: true, bhataId: true, status: true },
   });
 
   if (!existing) {
@@ -102,6 +111,33 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (typeof status !== "string" || !ALLOWED_STATUS.includes(status)) {
       return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
     }
+
+    const roleAllowed = ROLE_STATUS_RULES[role] || [];
+    if (!roleAllowed.includes(status)) {
+      return NextResponse.json(
+        { error: "You are not allowed to set this status" },
+        { status: 403 }
+      );
+    }
+
+    if (status === "CANCELLED") {
+      const flowIndex = STATUS_FLOW.indexOf(existing.status);
+      if (existing.status === "CANCELLED") {
+        return NextResponse.json({ error: "Order is already cancelled" }, { status: 400 });
+      }
+      // Customers can only cancel while order is still pending/confirmed.
+      // Owners/admins can cancel any order that hasn't been delivered.
+      if (role === "CUSTOMER" && existing.status !== "PENDING" && existing.status !== "CONFIRMED") {
+        return NextResponse.json(
+          { error: "This order can no longer be cancelled" },
+          { status: 400 }
+        );
+      }
+      if (existing.status === "DELIVERED" || flowIndex === -1) {
+        return NextResponse.json({ error: "This order can no longer be cancelled" }, { status: 400 });
+      }
+    }
+
     data.status = status;
   }
 

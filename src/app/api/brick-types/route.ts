@@ -9,6 +9,21 @@ export async function GET() {
   return NextResponse.json(types);
 }
 
+function validateBody(body: Record<string, unknown>) {
+  const errors: string[] = [];
+  if (typeof body.name !== "string" || body.name.trim().length < 2) {
+    errors.push("Brick type name must be at least 2 characters");
+  }
+  if (body.unit !== undefined && (typeof body.unit !== "string" || body.unit.trim().length === 0)) {
+    errors.push("Unit must be a non-empty string");
+  }
+  const price = body.basePrice !== undefined ? Number(body.basePrice) : undefined;
+  if (price === undefined || !Number.isFinite(price) || price <= 0) {
+    errors.push("Base price must be a positive number");
+  }
+  return { errors, price };
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") {
@@ -16,9 +31,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, unit, basePrice, image } = await req.json();
+    const body = await req.json();
+    const { errors, price } = validateBody(body);
+    if (errors.length > 0) {
+      return NextResponse.json({ error: errors[0] }, { status: 400 });
+    }
+
     const type = await prisma.brickType.create({
-      data: { name, description, unit, basePrice: parseFloat(basePrice), image },
+      data: {
+        name: body.name.trim(),
+        description: typeof body.description === "string" ? body.description : null,
+        unit: typeof body.unit === "string" ? body.unit.trim() : "pieces",
+        basePrice: price as number,
+        image: typeof body.image === "string" ? body.image : null,
+      },
     });
     return NextResponse.json(type, { status: 201 });
   } catch (error) {
@@ -34,10 +60,29 @@ export async function PUT(req: Request) {
   }
 
   try {
-    const { id, name, description, unit, basePrice, image } = await req.json();
+    const body = await req.json();
+    if (typeof body.id !== "string") {
+      return NextResponse.json({ error: "Brick type id is required" }, { status: 400 });
+    }
+    const { errors, price } = validateBody(body);
+    if (errors.length > 0) {
+      return NextResponse.json({ error: errors[0] }, { status: 400 });
+    }
+
+    const existing = await prisma.brickType.findUnique({ where: { id: body.id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Brick type not found" }, { status: 404 });
+    }
+
     const type = await prisma.brickType.update({
-      where: { id },
-      data: { name, description, unit, basePrice: parseFloat(basePrice), image },
+      where: { id: body.id },
+      data: {
+        name: body.name.trim(),
+        description: typeof body.description === "string" ? body.description : null,
+        unit: typeof body.unit === "string" ? body.unit.trim() : "pieces",
+        basePrice: price as number,
+        image: typeof body.image === "string" ? body.image : null,
+      },
     });
     return NextResponse.json(type);
   } catch (error) {
@@ -54,6 +99,9 @@ export async function DELETE(req: Request) {
 
   try {
     const { id } = await req.json();
+    if (typeof id !== "string") {
+      return NextResponse.json({ error: "Brick type id is required" }, { status: 400 });
+    }
     await prisma.brickType.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

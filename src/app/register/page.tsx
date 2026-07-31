@@ -9,6 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertBanner } from "@/components/ui/alert";
+import {
+  validateName,
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validateConfirmPassword,
+  validateAddress,
+  getPasswordStrength,
+  type FieldErrors,
+} from "@/lib/client-validation";
 import { ToyBrick, Eye, EyeOff, UserPlus } from "lucide-react";
 
 function RegisterForm() {
@@ -21,27 +32,75 @@ function RegisterForm() {
     email: "",
     phone: "",
     password: "",
-    role: defaultRole.toUpperCase(),
+    confirmPassword: "",
+    role: defaultRole.toUpperCase() === "OWNER" ? "OWNER" : "CUSTOMER",
     address: "",
   });
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const strength = getPasswordStrength(form.password);
+  const isOwner = form.role === "OWNER";
+
+  const validateForm = (): boolean => {
+    const nextErrors: FieldErrors = {
+      name: validateName(form.name),
+      email: validateEmail(form.email),
+      phone: validatePhone(form.phone),
+      password: validatePassword(form.password),
+      confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
+      address: isOwner ? validateAddress(form.address, true) : undefined,
+    };
+    setErrors(nextErrors);
+    return Object.values(nextErrors).every((e) => !e);
+  };
+
+  const handleChange = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [field]: value }));
+    if (errors[field as string]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    if (field === "password") {
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: validateConfirmPassword(value, form.confirmPassword),
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError("");
+
+    if (!validateForm()) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: form.role,
+        address: form.address,
+      };
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Something went wrong");
+        setServerError(data.error || "Something went wrong. Please try again.");
         setLoading(false);
         return;
       }
@@ -49,10 +108,12 @@ function RegisterForm() {
       toast.success("Account created! Sign in now.");
       router.push("/login?registered=true");
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      setServerError("Network error. Please check your connection and try again.");
       setLoading(false);
     }
   };
+
+  const fieldClass = (field: string) => (errors[field] ? "error" : undefined);
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
@@ -76,26 +137,38 @@ function RegisterForm() {
             <p className="text-sm text-gray-500">Join BrickBuilding today</p>
           </CardHeader>
           <CardContent>
+            {serverError && (
+              <AlertBanner variant="error" title="Registration failed" message={serverError} className="mb-4" />
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
                 <Input
                   placeholder="Your name"
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
+                  onChange={handleChange("name")}
+                  error={fieldClass("name") === "error"}
+                  className="transition-all focus:ring-2 focus:ring-orange-500"
                 />
+                {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
                 <Input
                   type="email"
                   placeholder="you@example.com"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
+                  onChange={handleChange("email")}
+                  error={fieldClass("email") === "error"}
+                  className="transition-all focus:ring-2 focus:ring-orange-500"
                 />
+                {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
@@ -104,53 +177,121 @@ function RegisterForm() {
                   type="tel"
                   placeholder="+91 9876543210"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={handleChange("phone")}
+                  error={fieldClass("phone") === "error"}
+                  className="transition-all focus:ring-2 focus:ring-orange-500"
                 />
+                {errors.phone ? (
+                  <p className="mt-1 text-xs text-red-600">{errors.phone}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">Optional, but recommended for order updates</p>
+                )}
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password (min 8 characters)"
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    required
-                    minLength={8}
-                    className="pr-10"
+                    onChange={handleChange("password")}
+                    error={fieldClass("password") === "error"}
+                    className="pr-10 transition-all focus:ring-2 focus:ring-orange-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password ? (
+                  <p className="mt-1 text-xs text-red-600">{errors.password}</p>
+                ) : form.password ? (
+                  <div className="mt-1.5">
+                    <div className="flex h-1.5 w-full gap-1">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-full flex-1 rounded-full transition-colors ${
+                            i <= strength.score ? strength.barColor : "bg-gray-200"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`mt-1 text-xs font-medium ${strength.textColor}`}>
+                      Password strength: {strength.label}
+                    </p>
+                  </div>
+                ) : null}
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">I want to join as</label>
-                <Select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                >
-                  <option value="CUSTOMER">Customer - I want to buy bricks</option>
-                  <option value="OWNER">Kiln Owner - I own a bhata</option>
-                </Select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    value={form.confirmPassword}
+                    onChange={handleChange("confirmPassword")}
+                    error={fieldClass("confirmPassword") === "error"}
+                    className="pr-10 transition-all focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <Input
-                  placeholder="Your address"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  I want to join as <span className="text-red-500">*</span>
+                </label>
+                <Select value={form.role} onChange={handleChange("role")}>
+                  <option value="CUSTOMER">Customer - I want to buy bricks</option>
+                  <option value="OWNER">Kiln Owner - I own a bhata</option>
+                </Select>
+                {isOwner && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Address is required for kiln owners to register your bhata.
+                  </p>
+                )}
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              {isOwner && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Address <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Your kiln / business address"
+                    value={form.address}
+                    onChange={handleChange("address")}
+                    error={fieldClass("address") === "error"}
+                    className="transition-all focus:ring-2 focus:ring-orange-500"
+                  />
+                  {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address}</p>}
+                </motion.div>
+              )}
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg shadow-orange-200 transition-all duration-200"
@@ -175,7 +316,7 @@ function RegisterForm() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.45 }}
+              transition={{ delay: 0.5 }}
               className="mt-6 text-center text-sm text-gray-500"
             >
               Already have an account?{" "}
