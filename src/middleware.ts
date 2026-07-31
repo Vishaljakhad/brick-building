@@ -1,26 +1,27 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default auth((req) => {
-  const path = req.nextUrl.pathname;
-  const user = req.auth?.user;
+export default async function middleware(req: Request) {
+  const path = new URL(req.url).pathname;
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const role = (token?.role as string) || "";
 
-  if (path.startsWith("/dashboard/admin") && user?.role !== "ADMIN") {
+  if (path.startsWith("/dashboard/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (path.startsWith("/dashboard/owner") && user?.role !== "OWNER") {
+  if (path.startsWith("/dashboard/owner") && role !== "OWNER") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (path.startsWith("/dashboard/customer") && user?.role !== "CUSTOMER") {
+  if (path.startsWith("/dashboard/customer") && role !== "CUSTOMER") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (path.startsWith("/dashboard") && !user) {
+  if (path.startsWith("/dashboard") && !role) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
-});
+}
 
 export const config = {
   matcher: ["/dashboard/:path*"],

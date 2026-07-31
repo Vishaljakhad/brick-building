@@ -13,8 +13,11 @@
 - **🏷️ Price Comparison** — Compare brick prices across kilns (standard, hollow, fly ash, concrete blocks)
 - **🚛 Truck Capacity Calculator** — Estimate how many bricks fit in each truck type
 - **📦 Order Management** — Place orders with delivery coordinates, track status from PENDING → DELIVERED
+- **🎁 Referral & Rewards** — Unique referral codes (`NAME-XXXX`), 15% off a referred friend's first order, and 5% cash-back rewards (capped ₹500) when their order is delivered
+- **🛒 First-Order Discount** — 10% off your first order (15% when referred), capped at ₹500 / ₹750
 - **👥 Three Roles** — Admin, Bhata Owner, and Customer dashboards with role-based access control
 - **🔐 Secure Auth** — NextAuth.js with bcrypt password hashing and JWT sessions
+- **🛡️ Security Hardening** — Configurable rate limiting with exponential backoff, strict input validation, generic error responses (no stack traces leaked), Prisma query timeouts with a circuit breaker, and CDN caching for public endpoints
 - **💳 Flexible Payment** — Cash on Delivery (COD) tracking with payment status
 - **📊 Admin Panel** — Manage users, verify kilns, and oversee marketplace activity
 
@@ -24,14 +27,16 @@
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Framework** | Next.js 16.2.12 (App Router, Turbopack) |
 | **Language** | TypeScript 5 |
 | **UI** | Tailwind CSS v4, Framer Motion, Lucide Icons |
-| **Database** | PostgreSQL (Neon) via Prisma 6 |
-| **Auth** | NextAuth.js (Credentials, JWT) |
+| **Database** | PostgreSQL (Neon) via Prisma 6.6.0 |
+| **Auth** | NextAuth.js v5 (Credentials, bcrypt, JWT) |
 | **Maps** | Leaflet + React Leaflet |
 | **Toasts** | React Hot Toast |
-| **Deployment** | Vercel |
+| **Deployment** | Vercel (`vercel --prod`) |
+
+> **No migrations folder** — schema changes are applied with `npm run db:push`.
 
 ---
 
@@ -97,35 +102,55 @@ After seeding locally, you can log in with:
 
 ---
 
+## 🎁 Referral & Discount Program
+
+Rules are centralized in `src/lib/constants.ts` (`DISCOUNT_RULES`) and computed in `src/lib/discounts.ts`:
+
+| Rule | Value |
+|------|-------|
+| First-order discount | 10% off (cap ₹500) |
+| First-order discount (referred) | 15% off (cap ₹750) |
+| Referrer reward | 5% of the referred order (cap ₹500) |
+| Reward granted when | Referred order reaches **DELIVERED** |
+
+- Every user gets a unique referral code like `NAME-XXXX` at registration (`generateReferralCode` in `src/lib/utils.ts`).
+- New users can sign up via a shared link (`/register?ref=CODE`) to be linked as a referral.
+- Earned rewards are auto-applied as a discount on the next order.
+- Rewards are granted exactly once inside a database transaction, guarded by `referralRewardGranted`.
+
+---
+
 ## 📂 Project Structure
 
 ```
 brick-building/
+├── AGENTS.md               # Guide for AI agents working on this codebase
 ├── prisma/
-│   ├── schema.prisma      # Database models (User, Bhata, BrickType, Order...)
-│   ├── seed.ts            # Seed script (TypeScript source)
-│   └── seed.js            # Compiled seed script
+│   ├── schema.prisma       # Database models (User, Bhata, BrickType, Order...)
+│   ├── seed.ts             # Seed script (TypeScript source)
+│   ├── seed.js             # Compiled seed script
+│   └── backfill-referral-codes.js  # One-off backfill for existing users
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx       # Landing page
-│   │   ├── login/         # Login page
-│   │   ├── register/      # Registration page
-│   │   ├── bhatas/        # Kiln listing + detail pages
-│   │   ├── orders/        # Order detail page
-│   │   ├── dashboard/     # Admin / Owner / Customer dashboards
-│   │   └── api/           # Next.js API routes
-│   ├── components/        # Reusable UI (navbar, hero, cards, map...)
-│   └── lib/               # Auth config, Prisma client, utilities
+│   │   ├── page.tsx        # Landing page
+│   │   ├── login/          # Login page
+│   │   ├── register/       # Registration page (supports ?ref=CODE)
+│   │   ├── bhatas/         # Kiln listing + detail pages
+│   │   ├── orders/         # Order detail page
+│   │   ├── dashboard/      # Admin / Owner / Customer dashboards
+│   │   └── api/            # Next.js API routes (auth, orders, bhatas, admin, referral)
+│   ├── components/         # Reusable UI (navbar, hero, cards, map, ui/primitives)
+│   └── lib/                # Auth, Prisma, validation, rate-limiting, discounts, utils
 └── package.json
 ```
 
 ### Database Models
 
-- **User** — Customers, owners, and admins (role-based)
+- **User** — Customers, owners, and admins (role-based), with referral code, referral rewards, and referrer link
 - **Bhata** — Brick kilns with location coordinates
 - **BrickType** — Catalog (standard, hollow, fly ash, concrete blocks)
 - **BrickPrice** — Per-kiln pricing and stock
-- **Order / OrderItem** — Orders with items, delivery details, and payment status
+- **Order / OrderItem** — Orders with items, delivery details, discounts, and payment status
 
 ---
 
