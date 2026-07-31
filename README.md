@@ -1,36 +1,163 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧱 BrickBuilding
 
-## Getting Started
+**India's B2B Brick Marketplace** — a platform that connects builders directly with verified brick kilns (bhatas). Compare prices, calculate truck loads, and track deliveries — all in one place.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Prisma](https://img.shields.io/badge/Prisma-6-2D3748) ![Tailwind](https://img.shields.io/badge/Tailwind-4-38BDF8) ![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000)
+
+---
+
+## ✨ Features
+
+- **🔍 Nearby Bhatas** — Find brick kilns within a chosen radius (25/50/100/200 km) using your GPS location
+- **🗺️ Interactive Map** — Live Leaflet map with kiln markers, distance badges, and location-aware sorting
+- **🏷️ Price Comparison** — Compare brick prices across kilns (standard, hollow, fly ash, concrete blocks)
+- **🚛 Truck Capacity Calculator** — Estimate how many bricks fit in each truck type
+- **📦 Order Management** — Place orders with delivery coordinates, track status from PENDING → DELIVERED
+- **👥 Three Roles** — Admin, Bhata Owner, and Customer dashboards with role-based access control
+- **🔐 Secure Auth** — NextAuth.js with bcrypt password hashing and JWT sessions
+- **💳 Flexible Payment** — Cash on Delivery (COD) tracking with payment status
+- **📊 Admin Panel** — Manage users, verify kilns, and oversee marketplace activity
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Language** | TypeScript 5 |
+| **UI** | Tailwind CSS v4, Framer Motion, Lucide Icons |
+| **Database** | PostgreSQL (Neon) via Prisma 6 |
+| **Auth** | NextAuth.js (Credentials, JWT) |
+| **Maps** | Leaflet + React Leaflet |
+| **Toasts** | React Hot Toast |
+| **Deployment** | Vercel |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL database (local or [Neon](https://neon.tech) cloud)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Vishaljakhad/brick-building.git
+cd brick-building
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```env
+DATABASE_URL="postgresql://user:password@host:5432/brick_building"
+NEXTAUTH_SECRET="your-random-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+### 4. Set up the database
+
+```bash
+npm run db:push      # Create tables from Prisma schema
+npm run db:seed      # Seed with demo data
+```
+
+### 5. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) 🎉
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔑 Demo Accounts
 
-## Learn More
+After seeding, you can log in with:
 
-To learn more about Next.js, take a look at the following resources:
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@test.com` | `password123` |
+| **Owner** | `owner@test.com` | `password123` |
+| **Owner 2** | `owner2@test.com` | `password123` |
+| **Customer** | `customer@test.com` | `password123` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📂 Project Structure
 
-## Deploy on Vercel
+```
+brick-building/
+├── prisma/
+│   ├── schema.prisma      # Database models (User, Bhata, BrickType, Order...)
+│   ├── seed.ts            # Seed script (TypeScript source)
+│   └── seed.js            # Compiled seed script
+├── src/
+│   ├── app/
+│   │   ├── page.tsx       # Landing page
+│   │   ├── login/         # Login page
+│   │   ├── register/      # Registration page
+│   │   ├── bhatas/        # Kiln listing + detail pages
+│   │   ├── orders/        # Order detail page
+│   │   ├── dashboard/     # Admin / Owner / Customer dashboards
+│   │   └── api/           # Next.js API routes
+│   ├── components/        # Reusable UI (navbar, hero, cards, map...)
+│   └── lib/               # Auth config, Prisma client, utilities
+└── package.json
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Database Models
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **User** — Customers, owners, and admins (role-based)
+- **Bhata** — Brick kilns with location coordinates
+- **BrickType** — Catalog (standard, hollow, fly ash, concrete blocks)
+- **BrickPrice** — Per-kiln pricing and stock
+- **Order / OrderItem** — Orders with items, delivery details, and payment status
+
+---
+
+## 🧰 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run db:push` | Sync Prisma schema to database |
+| `npm run db:seed` | Seed database with demo data |
+| `npm run db:studio` | Open Prisma Studio (visual DB editor) |
+| `npm run db:migrate` | Create a new migration |
+
+---
+
+## ☁️ Deployment (Vercel)
+
+1. Push this repo to GitHub
+2. Import it in [Vercel](https://vercel.com) (or use `vercel --prod` from CLI)
+3. Add environment variables in Vercel → Settings → Environment Variables:
+
+| Name | Value |
+|------|-------|
+| `DATABASE_URL` | Your production PostgreSQL connection string (Neon) |
+| `NEXTAUTH_SECRET` | A random secret |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` |
+
+4. Deploy — done!
+
+---
+
+## 📄 License
+
+This is a private project for demonstration purposes.
