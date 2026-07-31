@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { isValidPositiveNumber } from "@/lib/validation";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -10,6 +11,23 @@ export async function POST(req: Request) {
 
   try {
     const { bhataId, brickTypeId, price, stock } = await req.json();
+
+    if (typeof bhataId !== "string" || typeof brickTypeId !== "string") {
+      return NextResponse.json({ error: "Invalid bhata or brick type" }, { status: 400 });
+    }
+
+    const numericPrice = Number(price);
+    if (!isValidPositiveNumber(numericPrice)) {
+      return NextResponse.json({ error: "Price must be a positive number" }, { status: 400 });
+    }
+
+    let numericStock: number | null = null;
+    if (stock !== undefined && stock !== null && stock !== "") {
+      numericStock = Number(stock);
+      if (!Number.isInteger(numericStock) || numericStock < 0) {
+        return NextResponse.json({ error: "Stock must be a non-negative integer" }, { status: 400 });
+      }
+    }
 
     const bhata = await prisma.bhata.findFirst({
       where: { id: bhataId, ownerId: session.user.id },
@@ -31,8 +49,8 @@ export async function POST(req: Request) {
       data: {
         bhataId,
         brickTypeId,
-        price: parseFloat(price),
-        stock: stock ? parseInt(stock) : null,
+        price: numericPrice,
+        stock: numericStock,
       },
     });
 
@@ -52,6 +70,21 @@ export async function PUT(req: Request) {
   try {
     const { id, price, stock, isAvailable } = await req.json();
 
+    const numericPrice = price !== undefined ? Number(price) : undefined;
+    if (numericPrice !== undefined && !isValidPositiveNumber(numericPrice)) {
+      return NextResponse.json({ error: "Price must be a positive number" }, { status: 400 });
+    }
+
+    let numericStock: number | null | undefined = undefined;
+    if (stock !== undefined && stock !== null && stock !== "") {
+      numericStock = Number(stock);
+      if (!Number.isInteger(numericStock) || numericStock < 0) {
+        return NextResponse.json({ error: "Stock must be a non-negative integer" }, { status: 400 });
+      }
+    } else if (stock !== undefined) {
+      numericStock = null;
+    }
+
     const brickPrice = await prisma.brickPrice.findUnique({
       where: { id },
       include: { bhata: true },
@@ -64,9 +97,9 @@ export async function PUT(req: Request) {
     const updated = await prisma.brickPrice.update({
       where: { id },
       data: {
-        price: price !== undefined ? parseFloat(price) : undefined,
-        stock: stock !== undefined ? (stock ? parseInt(stock) : null) : undefined,
-        isAvailable: isAvailable !== undefined ? isAvailable : undefined,
+        price: numericPrice,
+        stock: numericStock,
+        isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : undefined,
       },
     });
 

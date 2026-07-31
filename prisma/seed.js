@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
-  const password = await bcrypt.hash("password123", 12);
+  const password = await bcrypt.hash(process.env.SEED_PASSWORD || "Demo@12345", 12);
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@test.com" },
@@ -190,10 +190,10 @@ async function main() {
   console.log("Database seeded successfully!");
   console.log("---");
   console.log("Demo Accounts:");
-  console.log("  Admin:    admin@test.com / password123");
-  console.log("  Owner:    owner@test.com / password123");
-  console.log("  Owner 2:  owner2@test.com / password123");
-  console.log("  Customer: customer@test.com / password123");
+  console.log("  Admin:    admin@test.com / Demo@12345");
+  console.log("  Owner:    owner@test.com / Demo@12345");
+  console.log("  Owner 2:  owner2@test.com / Demo@12345");
+  console.log("  Customer: customer@test.com / Demo@12345");
 }
 
 main()

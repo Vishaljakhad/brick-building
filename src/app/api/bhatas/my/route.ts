@@ -34,6 +34,16 @@ export async function POST(req: Request) {
   try {
     const { name, address, phone, description } = await req.json();
 
+    if (typeof name !== "string" || name.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Bhata name must be at least 2 characters" },
+        { status: 400 }
+      );
+    }
+    if (typeof address !== "string" || address.trim().length < 5) {
+      return NextResponse.json({ error: "Please enter a valid address" }, { status: 400 });
+    }
+
     const existing = await prisma.bhata.findFirst({
       where: { ownerId: session.user.id },
     });
@@ -44,10 +54,10 @@ export async function POST(req: Request) {
 
     const bhata = await prisma.bhata.create({
       data: {
-        name,
-        address,
-        phone,
-        description,
+        name: name.trim(),
+        address: address.trim(),
+        phone: typeof phone === "string" ? phone : null,
+        description: typeof description === "string" ? description : null,
         latitude: 23.685, // Default center of Bangladesh/India
         longitude: 90.356,
         ownerId: session.user.id,
@@ -70,6 +80,16 @@ export async function PUT(req: Request) {
   try {
     const { name, address, phone, description } = await req.json();
 
+    if (name !== undefined && (typeof name !== "string" || name.trim().length < 2)) {
+      return NextResponse.json(
+        { error: "Bhata name must be at least 2 characters" },
+        { status: 400 }
+      );
+    }
+    if (address !== undefined && (typeof address !== "string" || address.trim().length < 5)) {
+      return NextResponse.json({ error: "Please enter a valid address" }, { status: 400 });
+    }
+
     const existing = await prisma.bhata.findFirst({
       where: { ownerId: session.user.id },
     });
@@ -80,7 +100,12 @@ export async function PUT(req: Request) {
 
     const bhata = await prisma.bhata.update({
       where: { id: existing.id },
-      data: { name, address, phone, description },
+      data: {
+        name: typeof name === "string" ? name.trim() : undefined,
+        address: typeof address === "string" ? address.trim() : undefined,
+        phone: typeof phone === "string" ? phone : undefined,
+        description: typeof description === "string" ? description : undefined,
+      },
     });
 
     return NextResponse.json(bhata);

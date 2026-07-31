@@ -84,14 +84,16 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ## 🔑 Demo Accounts
 
-After seeding, you can log in with:
+After seeding locally, you can log in with:
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Admin** | `admin@test.com` | `password123` |
-| **Owner** | `owner@test.com` | `password123` |
-| **Owner 2** | `owner2@test.com` | `password123` |
-| **Customer** | `customer@test.com` | `password123` |
+| **Admin** | `admin@test.com` | `Demo@12345` |
+| **Owner** | `owner@test.com` | `Demo@12345` |
+| **Owner 2** | `owner2@test.com` | `Demo@12345` |
+| **Customer** | `customer@test.com` | `Demo@12345` |
+
+> **Note:** These are local-development-only credentials. In production, demo accounts use strong randomly generated passwords. Override via `SEED_PASSWORD` env var.
 
 ---
 
