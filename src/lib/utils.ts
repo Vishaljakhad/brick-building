@@ -37,3 +37,13 @@ export function calculateDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+
+const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function generateReferralCode(seed: string): string {
+  const clean = seed.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "BBRICK";
+  const suffix = Array.from({ length: 4 }, () =>
+    REFERRAL_ALPHABET[Math.floor(Math.random() * REFERRAL_ALPHABET.length)]
+  ).join("");
+  return `${clean}-${suffix}`;
+}

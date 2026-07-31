@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
 import { isValidLatitude, isValidLongitude, isValidPositiveInt } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
+import { computeDiscount, isFirstOrder } from "@/lib/discounts";
 
 const ALLOWED_PAYMENT_METHODS = ["COD", "ONLINE"];
 
@@ -19,12 +20,32 @@ export async function GET(req: Request) {
 
   let orders;
 
+  const orderSelect = {
+    id: true,
+    orderNumber: true,
+    status: true,
+    totalAmount: true,
+    subtotalAmount: true,
+    discountAmount: true,
+    discountLabel: true,
+    paymentMethod: true,
+    paymentStatus: true,
+    createdAt: true,
+    items: {
+      select: {
+        quantity: true,
+        unitPrice: true,
+        brickType: { select: { id: true, name: true, unit: true } },
+      },
+    },
+  };
+
   if (role === "ADMIN") {
     orders = await prisma.order.findMany({
-      include: {
-        customer: { select: { name: true, email: true } },
-        bhata: { select: { name: true } },
-        items: { include: { brickType: true } },
+      select: {
+        ...orderSelect,
+        customer: { select: { id: true, name: true, email: true } },
+        bhata: { select: { id: true, name: true, ownerId: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -36,19 +57,19 @@ export async function GET(req: Request) {
     const bhataIds = userBhatas.map((b) => b.id);
     orders = await prisma.order.findMany({
       where: { bhataId: { in: bhataIds } },
-      include: {
-        customer: { select: { name: true, email: true, phone: true } },
-        bhata: { select: { name: true } },
-        items: { include: { brickType: true } },
+      select: {
+        ...orderSelect,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
+        bhata: { select: { id: true, name: true, ownerId: true } },
       },
       orderBy: { createdAt: "desc" },
     });
   } else {
     orders = await prisma.order.findMany({
       where: { customerId: userId },
-      include: {
-        bhata: { select: { name: true } },
-        items: { include: { brickType: true } },
+      select: {
+        ...orderSelect,
+        bhata: { select: { id: true, name: true, ownerId: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -135,8 +156,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const customer = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, referredById: true, referralRewards: true },
+    });
+    if (!customer) {
+      return NextResponse.json({ error: "Account not found" }, { status: 400 });
+    }
+
+    const existingOrders = await prisma.order.findMany({
+      where: { customerId: session.user.id },
+      select: { status: true },
+    });
+
     let totalAmount = 0;
-    const orderItems = [];
+    const orderItems: { brickTypeId: string; quantity: number; unitPrice: number }[] = [];
 
     for (const item of items) {
       const brickTypeId = (item as { brickTypeId?: unknown })?.brickTypeId;
@@ -184,34 +218,56 @@ export async function POST(req: Request) {
       });
     }
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        customerId: session.user.id,
-        bhataId,
-        status: "PENDING",
-        totalAmount,
-        paymentMethod: (paymentMethod as string) || "COD",
-        paymentStatus: "UNPAID",
-        deliveryAddress: deliveryAddress.trim(),
-        deliveryLatitude:
-          deliveryLatitude !== undefined && isValidLatitude(deliveryLatitude)
-            ? deliveryLatitude
-            : null,
-        deliveryLongitude:
-          deliveryLongitude !== undefined && isValidLongitude(deliveryLongitude)
-            ? deliveryLongitude
-            : null,
-        truckCapacity: typeof truckCapacity === "string" ? truckCapacity : null,
-        notes: typeof notes === "string" ? notes : null,
-        items: {
-          create: orderItems,
+    const discount = computeDiscount({
+      subtotal: totalAmount,
+      hasReferrer: !!customer.referredById,
+      isFirstOrder: isFirstOrder(existingOrders),
+      referralRewards: customer.referralRewards,
+    });
+
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNumber: generateOrderNumber(),
+          customerId: session.user.id,
+          bhataId,
+          status: "PENDING",
+          totalAmount: discount.totalAmount,
+          subtotalAmount: discount.subtotalAmount,
+          discountAmount: discount.discountAmount,
+          discountCode: discount.discountCode || null,
+          discountLabel: discount.discountLabel || null,
+          paymentMethod: (paymentMethod as string) || "COD",
+          paymentStatus: "UNPAID",
+          deliveryAddress: deliveryAddress.trim(),
+          deliveryLatitude:
+            deliveryLatitude !== undefined && isValidLatitude(deliveryLatitude)
+              ? deliveryLatitude
+              : null,
+          deliveryLongitude:
+            deliveryLongitude !== undefined && isValidLongitude(deliveryLongitude)
+              ? deliveryLongitude
+              : null,
+          truckCapacity: typeof truckCapacity === "string" ? truckCapacity : null,
+          notes: typeof notes === "string" ? notes : null,
+          items: {
+            create: orderItems,
+          },
         },
-      },
-      include: {
-        items: { include: { brickType: true } },
-        bhata: { select: { name: true } },
-      },
+        include: {
+          items: { include: { brickType: true } },
+          bhata: { select: { name: true } },
+        },
+      });
+
+      if (discount.discountCode.includes("REFERRER_REWARD")) {
+        await tx.user.update({
+          where: { id: session.user.id },
+          data: { referralRewards: 0 },
+        });
+      }
+
+      return created;
     });
 
     return NextResponse.json(order, { status: 201 });

@@ -10,18 +10,30 @@ import { Modal } from "@/components/ui/modal";
 import { formatPrice, cn } from "@/lib/utils";
 import { ORDER_STATUS, STATUS_COLORS } from "@/lib/constants";
 import toast from "react-hot-toast";
-import { Package, Clock, Search, MapPin, XCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Package, Clock, Search, MapPin, XCircle, Loader2, AlertTriangle, Gift, Copy, Users } from "lucide-react";
 
 interface OrderSummary {
   id: string;
   orderNumber: string;
   status: string;
   totalAmount: number;
+  subtotalAmount: number;
+  discountAmount: number;
+  discountLabel: string | null;
   paymentMethod: string;
   paymentStatus: string;
   createdAt: string;
   bhata: { name: string };
   items: { brickType: { name: string }; quantity: number }[];
+}
+
+interface ReferralInfo {
+  referralCode: string | null;
+  referralRewards: number;
+  referredById: string | null;
+  isFirstOrder: boolean;
+  successfulReferrals: number;
+  totalReferrals: number;
 }
 
 const FILTERS = [
@@ -39,6 +51,7 @@ export default function CustomerDashboard() {
   const [search, setSearch] = useState("");
   const [cancelTarget, setCancelTarget] = useState<OrderSummary | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [referral, setReferral] = useState<ReferralInfo | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -50,8 +63,28 @@ export default function CustomerDashboard() {
     setLoading(false);
   };
 
+  const fetchReferral = async () => {
+    const res = await fetch("/api/referral");
+    if (res.ok) {
+      const data = await res.json();
+      setReferral(data);
+    }
+  };
+
+  const copyReferral = async () => {
+    if (!referral?.referralCode) return;
+    try {
+      const link = `${window.location.origin}/register?ref=${referral.referralCode}`;
+      await navigator.clipboard.writeText(link);
+      toast.success("Referral link copied!");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchReferral();
   }, []);
 
   const handleCancel = async () => {
@@ -168,6 +201,58 @@ export default function CustomerDashboard() {
         </Card>
       </div>
 
+      {referral?.referralCode && (
+        <Card className="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-lg">
+                  <Gift className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Refer a friend, earn rewards</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Share your code — your friend gets <strong>15% off their first order</strong> and you earn{" "}
+                    <strong>5% of their order</strong> (up to {formatPrice(500)}) when it&apos;s delivered.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 rounded-lg border border-dashed border-orange-400 bg-white px-4 py-2">
+                      <span className="font-mono text-lg font-bold tracking-widest text-orange-700">
+                        {referral.referralCode}
+                      </span>
+                      <button
+                        onClick={copyReferral}
+                        className="text-gray-400 hover:text-orange-600 transition-colors"
+                        aria-label="Copy referral link"
+                        title="Copy referral link"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={copyReferral}>
+                      Copy Link
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">{formatPrice(referral.referralRewards)}</p>
+                  <p className="text-xs text-gray-500">Reward balance</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-1">
+                    <Users className="h-5 w-5 text-gray-400" />
+                    {referral.successfulReferrals}
+                  </p>
+                  <p className="text-xs text-gray-500">Successful referrals</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
@@ -255,6 +340,12 @@ export default function CustomerDashboard() {
                       <p className="text-sm text-gray-500">
                         {formatPrice(order.totalAmount)} &middot; {order.paymentMethod}
                       </p>
+                      {order.discountAmount > 0 && (
+                        <p className="mt-0.5 text-xs text-green-600">
+                          Saved {formatPrice(order.discountAmount)}
+                          {order.discountLabel ? ` (${order.discountLabel})` : ""}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-sm text-gray-400">

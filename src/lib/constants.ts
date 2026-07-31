@@ -41,3 +41,18 @@ export const STATUS_COLORS: Record<string, string> = {
   DELIVERED: "bg-green-100 text-green-800 border-green-300",
   CANCELLED: "bg-red-100 text-red-800 border-red-300",
 };
+
+export const DISCOUNT_RULES = {
+  FIRST_ORDER_PERCENT: 0.1,
+  FIRST_ORDER_CAP: 500,
+  REFERRAL_PERCENT: 0.15,
+  REFERRAL_CAP: 750,
+  REFERRER_REWARD_PERCENT: 0.05,
+  REFERRER_REWARD_CAP: 500,
+} as const;
+
+export const DISCOUNT_LABELS: Record<string, string> = {
+  FIRST_ORDER: "First order discount",
+  REFERRAL_FIRST_ORDER: "Referral first order discount",
+  REFERRER_REWARD: "Referral reward",
+};

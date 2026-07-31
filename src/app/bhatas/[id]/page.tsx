@@ -20,6 +20,7 @@ const MapComponent = dynamic(() => import("@/components/map-component").then((m)
   loading: () => <div className="h-[300px] w-full rounded-xl border border-gray-200 bg-gray-100 animate-pulse" />,
 });
 import { TRUCK_TYPES } from "@/lib/constants";
+import { computeDiscount } from "@/lib/discounts";
 import {
   ArrowLeft,
   MapPin,
@@ -73,6 +74,25 @@ export default function BhataDetailPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [error, setError] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [referralInfo, setReferralInfo] = useState<{
+    isFirstOrder: boolean;
+    referredById: string | null;
+    referralRewards: number;
+  } | null>(null);
+
+  const fetchReferralInfo = async () => {
+    try {
+      const res = await fetch("/api/referral");
+      if (res.ok) {
+        const data = await res.json();
+        setReferralInfo({
+          isFirstOrder: data.isFirstOrder,
+          referredById: data.referredById,
+          referralRewards: data.referralRewards,
+        });
+      }
+    } catch {}
+  };
 
   const fetchBhata = async () => {
     try {
@@ -88,6 +108,7 @@ export default function BhataDetailPage() {
 
   useEffect(() => {
     fetchBhata();
+    fetchReferralInfo();
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -117,6 +138,14 @@ export default function BhataDetailPage() {
     const bp = availableBricks.find((b) => b.id === priceId);
     return sum + (bp ? bp.price * qty : 0);
   }, 0);
+
+  const discount = computeDiscount({
+    subtotal: totalPrice,
+    hasReferrer: !!referralInfo?.referredById,
+    isFirstOrder: !!referralInfo?.isFirstOrder,
+    referralRewards: referralInfo?.referralRewards ?? 0,
+  });
+  const discountEligible = totalPrice > 0 && discount.discountAmount > 0;
 
   const truckCapacity = TRUCK_TYPES.find((t) => t.name === selectedTruck);
   const exceedsCapacity = truckCapacity ? totalQuantity > truckCapacity.capacity : false;
@@ -454,14 +483,31 @@ export default function BhataDetailPage() {
 
                 {totalQuantity > 0 && (
                   <>
+                    {discountEligible && (
+                      <AlertBanner
+                        variant="success"
+                        title={`${discount.discountLabel} applied`}
+                        message={`You save ${formatPrice(discount.discountAmount)} on this order.`}
+                      />
+                    )}
                     <div className="rounded-lg bg-orange-50 p-3">
                       <p className="flex justify-between text-sm">
                         <span>Total Quantity:</span>
                         <span className="font-bold">{totalQuantity} pieces</span>
                       </p>
-                      <p className="flex justify-between text-lg font-bold text-orange-600">
+                      <p className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>{formatPrice(discount.subtotalAmount)}</span>
+                      </p>
+                      {discount.discountAmount > 0 && (
+                        <p className="flex justify-between text-sm text-green-600">
+                          <span>{discount.discountLabel}:</span>
+                          <span>-{formatPrice(discount.discountAmount)}</span>
+                        </p>
+                      )}
+                      <p className="flex justify-between text-lg font-bold text-orange-600 border-t border-orange-200 pt-1 mt-1">
                         <span>Total Amount:</span>
-                        <span>{formatPrice(totalPrice)}</span>
+                        <span>{formatPrice(discount.totalAmount)}</span>
                       </p>
                     </div>
 
@@ -571,7 +617,7 @@ export default function BhataDetailPage() {
                     "Sign In to Order"
                   ) : (
                     <>
-                      <ShoppingCart className="h-5 w-5" /> Place Order - {formatPrice(totalPrice)}
+                      <ShoppingCart className="h-5 w-5" /> Place Order - {formatPrice(discount.totalAmount)}
                     </>
                   )}
                 </Button>

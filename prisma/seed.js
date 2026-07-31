@@ -3,6 +3,17 @@ const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
+const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function generateReferralCode(seed) {
+  const clean = String(seed).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "BBRICK";
+  let suffix = "";
+  for (let i = 0; i < 4; i++) {
+    suffix += REFERRAL_ALPHABET[Math.floor(Math.random() * REFERRAL_ALPHABET.length)];
+  }
+  return `${clean}-${suffix}`;
+}
+
 async function main() {
   const password = await bcrypt.hash(process.env.SEED_PASSWORD || "Demo@12345", 12);
 
@@ -16,6 +27,7 @@ async function main() {
       role: "ADMIN",
       phone: "+91 9876543210",
       address: "Admin Office, Dhaka",
+      referralCode: generateReferralCode("Admin"),
     },
   });
 
@@ -29,6 +41,7 @@ async function main() {
       role: "OWNER",
       phone: "+91 9876543211",
       address: "Bhata Office, Savar, Dhaka",
+      referralCode: generateReferralCode("Rahim"),
     },
   });
 
@@ -42,6 +55,7 @@ async function main() {
       role: "OWNER",
       phone: "+91 9876543212",
       address: "Mirpur, Dhaka",
+      referralCode: generateReferralCode("Karim"),
     },
   });
 
@@ -55,6 +69,22 @@ async function main() {
       role: "CUSTOMER",
       phone: "+91 9876543213",
       address: "Uttara, Dhaka",
+      referralCode: generateReferralCode("Shahid"),
+    },
+  });
+
+  const referredCustomer = await prisma.user.upsert({
+    where: { email: "referred@test.com" },
+    update: {},
+    create: {
+      name: "Tanvir Referee",
+      email: "referred@test.com",
+      password,
+      role: "CUSTOMER",
+      phone: "+91 9876543214",
+      address: "Banani, Dhaka",
+      referralCode: generateReferralCode("Tanvir"),
+      referredById: customer.id,
     },
   });
 
@@ -193,7 +223,8 @@ async function main() {
   console.log("  Admin:    admin@test.com / Demo@12345");
   console.log("  Owner:    owner@test.com / Demo@12345");
   console.log("  Owner 2:  owner2@test.com / Demo@12345");
-  console.log("  Customer: customer@test.com / Demo@12345");
+  console.log("  Customer: customer@test.com / Demo@12345 (referral code: " + customer.referralCode + ")");
+  console.log("  Referred: referred@test.com / Demo@12345 (referred by Customer)");
 }
 
 main()

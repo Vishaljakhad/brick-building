@@ -70,6 +70,15 @@ export function validateBhataName(name: string): string | undefined {
   return undefined;
 }
 
+export const REFERRAL_CODE_REGEX = /^[A-Z0-9]{3,4}-[A-Z0-9]{4}$/;
+
+export function validateReferralCode(code: string): string | undefined {
+  const value = code.trim().toUpperCase();
+  if (!value) return undefined;
+  if (!REFERRAL_CODE_REGEX.test(value)) return "Enter a valid referral code (e.g. NAME-XXXX)";
+  return undefined;
+}
+
 export function getPasswordStrength(password: string): {
   score: 0 | 1 | 2 | 3 | 4;
   label: string;

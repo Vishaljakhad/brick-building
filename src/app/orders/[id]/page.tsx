@@ -30,6 +30,9 @@ interface OrderDetail {
   orderNumber: string;
   status: string;
   totalAmount: number;
+  subtotalAmount: number;
+  discountAmount: number;
+  discountLabel: string | null;
   paymentMethod: string;
   paymentStatus: string;
   deliveryAddress: string;
@@ -155,6 +158,15 @@ export default function OrderDetailPage() {
         />
       )}
 
+      {!isCancelled && order.discountAmount > 0 && (
+        <AlertBanner
+          variant="success"
+          title={order.discountLabel || "Discount applied"}
+          message={`You saved ${formatPrice(order.discountAmount)} on this order.`}
+          className="mb-6"
+        />
+      )}
+
       <Card className="mb-6">
         <CardContent className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -272,6 +284,12 @@ export default function OrderDetailPage() {
                 </div>
               ))}
               <hr className="border-gray-200" />
+              {order.discountAmount > 0 && (
+                <div className="flex items-center justify-between text-sm text-green-600">
+                  <span>{order.discountLabel || "Discount"}</span>
+                  <span>-{formatPrice(order.discountAmount)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-lg font-bold">
                 <span>Total</span>
                 <span className="text-orange-600">{formatPrice(order.totalAmount)}</span>

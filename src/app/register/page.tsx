@@ -17,15 +17,17 @@ import {
   validatePassword,
   validateConfirmPassword,
   validateAddress,
+  validateReferralCode,
   getPasswordStrength,
   type FieldErrors,
 } from "@/lib/client-validation";
-import { ToyBrick, Eye, EyeOff, UserPlus } from "lucide-react";
+import { ToyBrick, Eye, EyeOff, UserPlus, Gift } from "lucide-react";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get("role") || "CUSTOMER";
+  const refCode = searchParams.get("ref") || "";
 
   const [form, setForm] = useState({
     name: "",
@@ -35,6 +37,7 @@ function RegisterForm() {
     confirmPassword: "",
     role: defaultRole.toUpperCase() === "OWNER" ? "OWNER" : "CUSTOMER",
     address: "",
+    referralCode: refCode.toUpperCase(),
   });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +55,7 @@ function RegisterForm() {
       password: validatePassword(form.password),
       confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
       address: isOwner ? validateAddress(form.address, true) : undefined,
+      referralCode: validateReferralCode(form.referralCode),
     };
     setErrors(nextErrors);
     return Object.values(nextErrors).every((e) => !e);
@@ -90,6 +94,7 @@ function RegisterForm() {
         password: form.password,
         role: form.role,
         address: form.address,
+        referralCode: form.referralCode.trim().toUpperCase() || undefined,
       };
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -140,6 +145,13 @@ function RegisterForm() {
             {serverError && (
               <AlertBanner variant="error" title="Registration failed" message={serverError} className="mb-4" />
             )}
+
+            <AlertBanner
+              variant="info"
+              title="New customer? Save on your first order"
+              message="Get 10% off (up to ₹500) your first order. Used a friend's referral code? That becomes 15% off (up to ₹750)."
+              className="mb-4"
+            />
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
@@ -291,7 +303,34 @@ function RegisterForm() {
                 </motion.div>
               )}
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.45 }}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Referral Code (optional)
+                </label>
+                <div className="relative">
+                  <Input
+                    placeholder="e.g. RAHIM-K4M2"
+                    value={form.referralCode}
+                    onChange={handleChange("referralCode")}
+                    error={fieldClass("referralCode") === "error"}
+                    className="pr-10 uppercase transition-all focus:ring-2 focus:ring-orange-500"
+                  />
+                  <Gift className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+                {errors.referralCode ? (
+                  <p className="mt-1 text-xs text-red-600">{errors.referralCode}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Enter a friend&apos;s code to boost your first-order discount to 15% and earn them a reward.
+                  </p>
+                )}
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg shadow-orange-200 transition-all duration-200"

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { generateReferralCode } from "../src/lib/utils";
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,7 @@ async function main() {
       role: "ADMIN",
       phone: "+91 9876543210",
       address: "Admin Office, Dhaka",
+      referralCode: generateReferralCode("Admin"),
     },
   });
 
@@ -29,6 +31,7 @@ async function main() {
       role: "OWNER",
       phone: "+91 9876543211",
       address: "Bhata Office, Savar, Dhaka",
+      referralCode: generateReferralCode("Rahim"),
     },
   });
 
@@ -42,6 +45,7 @@ async function main() {
       role: "OWNER",
       phone: "+91 9876543212",
       address: "Mirpur, Dhaka",
+      referralCode: generateReferralCode("Karim"),
     },
   });
 
@@ -55,6 +59,7 @@ async function main() {
       role: "CUSTOMER",
       phone: "+91 9876543213",
       address: "Uttara, Dhaka",
+      referralCode: generateReferralCode("Shahid"),
     },
   });
 

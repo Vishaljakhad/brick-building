@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { DISCOUNT_RULES } from "@/lib/constants";
 
 const ALLOWED_STATUS = ["PENDING", "CONFIRMED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"];
 const ALLOWED_PAYMENT_STATUS = ["UNPAID", "PAID", "REFUNDED"];
@@ -43,6 +44,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       bhataId: true,
       status: true,
       totalAmount: true,
+      subtotalAmount: true,
+      discountAmount: true,
+      discountCode: true,
+      discountLabel: true,
       paymentMethod: true,
       paymentStatus: true,
       deliveryAddress: true,
@@ -156,9 +161,41 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    const order = await prisma.order.update({
-      where: { id: existing.id },
-      data,
+    const order = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: existing.id },
+        data,
+      });
+
+      if (data.status === "DELIVERED") {
+        const customer = await tx.user.findUnique({
+          where: { id: existing.customerId },
+          select: {
+            referredById: true,
+            referralRewardGranted: true,
+            referrals: { select: { id: true } },
+          },
+        });
+
+        if (customer?.referredById && !customer.referralRewardGranted) {
+          const rewardAmount = Math.min(
+            updated.subtotalAmount * DISCOUNT_RULES.REFERRER_REWARD_PERCENT,
+            DISCOUNT_RULES.REFERRER_REWARD_CAP
+          );
+
+          await tx.user.update({
+            where: { id: customer.referredById },
+            data: { referralRewards: { increment: rewardAmount } },
+          });
+
+          await tx.user.update({
+            where: { id: existing.customerId },
+            data: { referralRewardGranted: true },
+          });
+        }
+      }
+
+      return updated;
     });
 
     return NextResponse.json(order);

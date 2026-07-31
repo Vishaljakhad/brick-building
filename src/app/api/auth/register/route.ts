@@ -3,12 +3,14 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import {
   ALLOWED_REGISTER_ROLES,
-  isValidEmail,
   isValidName,
   isValidPassword,
   normalizeEmail,
 } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
+import { generateReferralCode } from "@/lib/utils";
+
+const REFERRAL_CODE_REGEX = /^[A-Z0-9]{3,4}-[A-Z0-9]{4}$/;
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -27,13 +29,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { name, email, phone, password, role, address } = body as {
+  const { name, email, phone, password, role, address, referralCode } = body as {
     name?: unknown;
     email?: unknown;
     phone?: unknown;
     password?: unknown;
     role?: unknown;
     address?: unknown;
+    referralCode?: unknown;
   };
 
   const normalizedEmail = normalizeEmail(email);
@@ -70,6 +73,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
   }
 
+  const normalizedReferralCode =
+    typeof referralCode === "string" && referralCode.trim()
+      ? referralCode.trim().toUpperCase()
+      : null;
+  if (normalizedReferralCode && !REFERRAL_CODE_REGEX.test(normalizedReferralCode)) {
+    return NextResponse.json({ error: "Invalid referral code" }, { status: 400 });
+  }
+
   try {
     const existing = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -78,7 +89,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email already registered" }, { status: 400 });
     }
 
+    let referredById: string | null = null;
+    if (normalizedReferralCode) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: normalizedReferralCode },
+        select: { id: true, email: true },
+      });
+      if (!referrer) {
+        return NextResponse.json({ error: "Referral code not found" }, { status: 400 });
+      }
+      if (referrer.email === normalizedEmail) {
+        return NextResponse.json(
+          { error: "You cannot use your own referral code" },
+          { status: 400 }
+        );
+      }
+      referredById = referrer.id;
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12);
+
+    const nameSeed = typeof name === "string" ? name : "BBRICK";
+    let referralCode = generateReferralCode(nameSeed);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const taken = await prisma.user.findUnique({
+        where: { referralCode },
+        select: { id: true },
+      });
+      if (!taken) break;
+      referralCode = generateReferralCode(`${nameSeed}${attempt}`);
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -88,6 +128,8 @@ export async function POST(req: Request) {
         password: hashedPassword,
         role: allowedRole as string,
         address: typeof address === "string" ? address : null,
+        referralCode,
+        referredById,
       },
     });
 

@@ -8,17 +8,24 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String?
-  emailVerified DateTime?
-  image         String?
-  role          String    @default("CUSTOMER")
-  phone         String?
-  address       String?
-  latitude      Float?
-  longitude     Float?
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String    @unique
+  password              String?
+  emailVerified         DateTime?
+  image                 String?
+  role                  String    @default("CUSTOMER")
+  phone                 String?
+  address               String?
+  latitude              Float?
+  longitude             Float?
+
+  referralCode          String?   @unique
+  referredById          String?
+  referredBy            User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals             User[]    @relation("Referrals")
+  referralRewards       Float     @default(0)
+  referralRewardGranted Boolean   @default(false)
 
   kilns  Bhata[]
   orders Order[]
@@ -126,6 +133,10 @@ model Order {
   bhata              Bhata       @relation(fields: [bhataId], references: [id])
   status             String      @default("PENDING")
   totalAmount        Float
+  subtotalAmount     Float       @default(0)
+  discountAmount     Float       @default(0)
+  discountCode       String?
+  discountLabel      String?
   paymentMethod      String      @default("COD")
   paymentStatus      String      @default("UNPAID")
   deliveryAddress    String
