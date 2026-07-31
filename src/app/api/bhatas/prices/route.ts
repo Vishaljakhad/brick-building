@@ -2,11 +2,21 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { isValidPositiveNumber } from "@/lib/validation";
+import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user || session.user.role !== "OWNER") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = getClientIp(req);
+  const limited = rateLimit(`prices-write:${session.user.id}:${ip}`, RATE_LIMIT_PROFILES.moderate);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+    );
   }
 
   try {
@@ -19,6 +29,9 @@ export async function POST(req: Request) {
     const numericPrice = Number(price);
     if (!isValidPositiveNumber(numericPrice)) {
       return NextResponse.json({ error: "Price must be a positive number" }, { status: 400 });
+    }
+    if (numericPrice > 1000000) {
+      return NextResponse.json({ error: "Price is too large" }, { status: 400 });
     }
 
     let numericStock: number | null = null;
@@ -67,12 +80,24 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const ip = getClientIp(req);
+  const limited = rateLimit(`prices-write:${session.user.id}:${ip}`, RATE_LIMIT_PROFILES.moderate);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+    );
+  }
+
   try {
     const { id, price, stock, isAvailable } = await req.json();
 
     const numericPrice = price !== undefined ? Number(price) : undefined;
     if (numericPrice !== undefined && !isValidPositiveNumber(numericPrice)) {
       return NextResponse.json({ error: "Price must be a positive number" }, { status: 400 });
+    }
+    if (numericPrice !== undefined && numericPrice > 1000000) {
+      return NextResponse.json({ error: "Price is too large" }, { status: 400 });
     }
 
     let numericStock: number | null | undefined = undefined;

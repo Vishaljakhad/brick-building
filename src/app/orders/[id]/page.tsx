@@ -79,7 +79,11 @@ export default function OrderDetailPage() {
 
   const handleCancel = async () => {
     if (!order) return;
+    const prevOrder = order;
     setCancelling(true);
+    setOrder({ ...order, status: "CANCELLED" });
+    setShowCancel(false);
+
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
         method: "PATCH",
@@ -90,15 +94,15 @@ export default function OrderDetailPage() {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error || "Failed to cancel order");
-        setCancelling(false);
+        setOrder(prevOrder);
         return;
       }
 
       toast.success("Order cancelled");
-      setShowCancel(false);
       fetchOrder();
     } catch {
       toast.error("Something went wrong. Please try again.");
+      setOrder(prevOrder);
     }
     setCancelling(false);
   };

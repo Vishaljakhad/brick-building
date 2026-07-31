@@ -3,18 +3,28 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
 import { isValidLatitude, isValidLongitude, isValidPositiveInt } from "@/lib/validation";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 import { computeDiscount, isFirstOrder } from "@/lib/discounts";
 
 const ALLOWED_PAYMENT_METHODS = ["COD", "ONLINE"];
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
+  const limited = rateLimit(
+    `orders-list:${session.user.id}`,
+    RATE_LIMIT_PROFILES.relaxed
+  );
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+    );
+  }
+
   const role = session.user.role;
   const userId = session.user.id;
 
@@ -84,12 +94,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const limited = rateLimit(`order:${session.user.id}:${ip}`, 10, 60 * 1000);
+  const ip = getClientIp(req);
+  const limited = rateLimit(`order:${session.user.id}:${ip}`, RATE_LIMIT_PROFILES.moderate);
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many orders. Please try again later." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
     );
   }
 
@@ -137,6 +147,24 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  if (deliveryAddress.length > 500) {
+    return NextResponse.json(
+      { error: "Delivery address is too long" },
+      { status: 400 }
+    );
+  }
+
+  if (typeof notes === "string" && notes.length > 1000) {
+    return NextResponse.json({ error: "Notes are too long" }, { status: 400 });
+  }
+
+  if (typeof truckCapacity === "string" && truckCapacity.length > 50) {
+    return NextResponse.json({ error: "Truck capacity is too long" }, { status: 400 });
+  }
+
+  if (items.length > 50) {
+    return NextResponse.json({ error: "Order cannot contain more than 50 items" }, { status: 400 });
+  }
 
   if (paymentMethod !== undefined && !ALLOWED_PAYMENT_METHODS.includes(paymentMethod as string)) {
     return NextResponse.json(
@@ -179,6 +207,13 @@ export async function POST(req: Request) {
       if (typeof brickTypeId !== "string" || !isValidPositiveInt(quantity)) {
         return NextResponse.json(
           { error: "Invalid brick type or quantity" },
+          { status: 400 }
+        );
+      }
+
+      if (quantity > 100000) {
+        return NextResponse.json(
+          { error: "Quantity per item is too large" },
           { status: 400 }
         );
       }

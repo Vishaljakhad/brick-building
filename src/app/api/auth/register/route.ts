@@ -7,18 +7,18 @@ import {
   isValidPassword,
   normalizeEmail,
 } from "@/lib/validation";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 import { generateReferralCode } from "@/lib/utils";
 
 const REFERRAL_CODE_REGEX = /^[A-Z0-9]{3,4}-[A-Z0-9]{4}$/;
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const limited = rateLimit(`register:${ip}`, 10, 60 * 1000);
+  const ip = getClientIp(req);
+  const limited = rateLimit(`register:${ip}`, RATE_LIMIT_PROFILES.moderate);
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
     );
   }
 
@@ -57,6 +57,9 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  if (name !== undefined && name !== null && typeof name === "string" && name.length > 100) {
+    return NextResponse.json({ error: "Name is too long" }, { status: 400 });
+  }
 
   const allowedRole = role === undefined ? "CUSTOMER" : role;
   if (
@@ -71,6 +74,12 @@ export async function POST(req: Request) {
 
   if (phone !== undefined && phone !== null && typeof phone !== "string") {
     return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+  }
+  if (typeof phone === "string" && phone.length > 30) {
+    return NextResponse.json({ error: "Phone number is too long" }, { status: 400 });
+  }
+  if (typeof address === "string" && address.length > 500) {
+    return NextResponse.json({ error: "Address is too long" }, { status: 400 });
   }
 
   const normalizedReferralCode =

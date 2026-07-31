@@ -184,6 +184,11 @@ export default function OwnerDashboard() {
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     setUpdatingOrder(orderId);
+    const prevOrders = orders;
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+    );
+
     const res = await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -198,6 +203,7 @@ export default function OwnerDashboard() {
     } else {
       const data = await res.json();
       toast.error(data.error || "Failed to update order");
+      setOrders(prevOrders);
     }
     setUpdatingOrder(null);
     fetchOrders();

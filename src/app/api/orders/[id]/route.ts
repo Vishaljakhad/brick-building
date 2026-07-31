@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { DISCOUNT_RULES } from "@/lib/constants";
+import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 
 const ALLOWED_STATUS = ["PENDING", "CONFIRMED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"];
 const ALLOWED_PAYMENT_STATUS = ["UNPAID", "PAID", "REFUNDED"];
@@ -34,55 +35,80 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const limited = rateLimit(`order-detail:${session.user.id}`, RATE_LIMIT_PROFILES.relaxed);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+    );
+  }
+
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      orderNumber: true,
-      customerId: true,
-      bhataId: true,
-      status: true,
-      totalAmount: true,
-      subtotalAmount: true,
-      discountAmount: true,
-      discountCode: true,
-      discountLabel: true,
-      paymentMethod: true,
-      paymentStatus: true,
-      deliveryAddress: true,
-      deliveryLatitude: true,
-      deliveryLongitude: true,
-      truckCapacity: true,
-      deliveryEstimate: true,
-      notes: true,
-      createdAt: true,
-      updatedAt: true,
-      customer: { select: { name: true, email: true, phone: true } },
-      bhata: {
-        select: { name: true, address: true, latitude: true, longitude: true, phone: true },
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        orderNumber: true,
+        customerId: true,
+        bhataId: true,
+        status: true,
+        totalAmount: true,
+        subtotalAmount: true,
+        discountAmount: true,
+        discountCode: true,
+        discountLabel: true,
+        paymentMethod: true,
+        paymentStatus: true,
+        deliveryAddress: true,
+        deliveryLatitude: true,
+        deliveryLongitude: true,
+        truckCapacity: true,
+        deliveryEstimate: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
+        customer: { select: { name: true, email: true, phone: true } },
+        bhata: {
+          select: { name: true, address: true, latitude: true, longitude: true, phone: true },
+        },
+        items: { include: { brickType: true } },
       },
-      items: { include: { brickType: true } },
-    },
-  });
+    });
 
-  if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const role = session.user.role as string;
+    const userId = session.user.id as string;
+    if (!(await canAccessOrder(order, role, userId))) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(order);
+  } catch (error) {
+    console.error("Get order error:", error);
+    return NextResponse.json({ error: "Failed to load order" }, { status: 500 });
   }
-
-  const role = session.user.role as string;
-  const userId = session.user.id as string;
-  if (!(await canAccessOrder(order, role, userId))) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(order);
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = getClientIp(req);
+  const limited = rateLimit(
+    `order-update:${session.user.id}:${ip}`,
+    RATE_LIMIT_PROFILES.moderate
+  );
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+    );
   }
 
   const role = session.user.role as string;

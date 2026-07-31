@@ -89,9 +89,16 @@ export default function CustomerDashboard() {
 
   const handleCancel = async () => {
     if (!cancelTarget) return;
+    const target = cancelTarget;
     setCancelling(true);
+
+    setOrders((prev) =>
+      prev.map((o) => (o.id === target.id ? { ...o, status: "CANCELLED" } : o))
+    );
+    setCancelTarget(null);
+
     try {
-      const res = await fetch(`/api/orders/${cancelTarget.id}`, {
+      const res = await fetch(`/api/orders/${target.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "CANCELLED" }),
@@ -100,15 +107,19 @@ export default function CustomerDashboard() {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error || "Failed to cancel order");
-        setCancelling(false);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === target.id ? { ...o, status: target.status } : o))
+        );
         return;
       }
 
       toast.success("Order cancelled");
-      setCancelTarget(null);
       fetchOrders();
     } catch {
       toast.error("Something went wrong. Please try again.");
+      setOrders((prev) =>
+        prev.map((o) => (o.id === target.id ? { ...o, status: target.status } : o))
+      );
     }
     setCancelling(false);
   };
