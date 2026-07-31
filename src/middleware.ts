@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export default async function middleware(req: Request) {
-  const path = new URL(req.url).pathname;
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const url = new URL(req.url);
+  const path = url.pathname;
+  const secureCookie = url.protocol === "https:";
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie,
+  });
   const role = (token?.role as string) || "";
 
   if (path.startsWith("/dashboard/admin") && role !== "ADMIN") {
