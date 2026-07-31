@@ -155,38 +155,7 @@ export default function LoginPage() {
               </Link>
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-              className="mt-6 rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-4"
-            >
-              <p className="text-xs font-semibold text-orange-800 mb-2">Quick Demo Access</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fillDemo("admin@test.com")}
-                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm border border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all"
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("owner@test.com")}
-                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm border border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all"
-                >
-                  Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("customer@test.com")}
-                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm border border-orange-200 hover:bg-orange-50 hover:border-orange-300 transition-all"
-                >
-                  Customer
-                </button>
-              </div>
-              <p className="mt-2 text-xs text-orange-600">Password for all: <span className="font-mono font-bold">password123</span></p>
-            </motion.div>
+
           </CardContent>
         </Card>
       </motion.div>
