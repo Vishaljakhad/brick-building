@@ -93,12 +93,15 @@ export function MapComponent({
       })
         .addTo(mapRef.current!)
         .bindPopup(
-          `<div style="font-family:system-ui;min-width:150px">
+          `<div style="font-family:system-ui;min-width:180px">
             <strong style="font-size:14px;color:#1f2937">${marker.name}</strong><br/>
             <span style="font-size:12px;color:#6b7280">${marker.address}</span>
             ${marker.priceRange ? `<br/><span style="font-size:12px;color:#ea580c;font-weight:600">${marker.priceRange}</span>` : ""}
-            ${isOsm ? `<br/><span style="font-size:11px;color:#16a34a;font-weight:600">Live · OpenStreetMap</span>` : ""}
-            ${!isOsm ? `<br/><br/><a href="/bhatas/${marker.id}" style="display:inline-block;padding:4px 12px;background:#ea580c;color:white;border-radius:6px;font-size:12px;text-decoration:none">View Details</a>` : ""}
+            <br/><br/>
+            ${isOsm
+              ? `<a href="/bhatas/live?name=${encodeURIComponent(marker.name)}&address=${encodeURIComponent(marker.address)}&lat=${marker.latitude}&lng=${marker.longitude}" style="display:block;text-align:center;padding:7px 12px;background:#16a34a;color:white;border-radius:6px;font-size:12px;text-decoration:none">View Kiln Details</a>
+                <span style="display:block;text-align:center;margin-top:6px;font-size:11px;color:#16a34a;font-weight:600">Live · OpenStreetMap</span>`
+              : `<a href="/bhatas/${marker.id}" style="display:block;text-align:center;padding:7px 12px;background:#ea580c;color:white;border-radius:6px;font-size:12px;text-decoration:none">View Details & Order</a>`}
           </div>`
         );
 

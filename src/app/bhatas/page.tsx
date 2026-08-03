@@ -229,7 +229,7 @@ export default function BhatasPage() {
           {filtered.map((bhata, index) => {
             const isLive = bhata.source === "osm";
             const card = (
-              <Card className={`h-full transition-all duration-300 ${isLive ? "" : "hover:shadow-xl hover:border-orange-300 hover:-translate-y-1 cursor-pointer group"}`}>
+              <Card className={`h-full transition-all duration-300 ${isLive ? "hover:shadow-xl hover:border-green-300 hover:-translate-y-1 cursor-pointer group" : "hover:shadow-xl hover:border-orange-300 hover:-translate-y-1 cursor-pointer group"}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -253,7 +253,7 @@ export default function BhatasPage() {
 
                   {isLive ? (
                     <div className="mt-4 rounded-lg bg-green-50 px-3 py-3 text-sm text-green-700">
-                      Found live on OpenStreetMap. Not yet registered on BrickBuilding — contact us to claim this kiln and list your prices.
+                      Found live on OpenStreetMap. Not yet registered — click to view details.
                     </div>
                   ) : (
                     <>
@@ -298,7 +298,15 @@ export default function BhatasPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                {isLive ? card : <Link href={`/bhatas/${bhata.id}`}>{card}</Link>}
+                {isLive ? (
+                  <Link
+                    href={`/bhatas/live?name=${encodeURIComponent(bhata.name)}&address=${encodeURIComponent(bhata.address)}&lat=${bhata.latitude}&lng=${bhata.longitude}`}
+                  >
+                    {card}
+                  </Link>
+                ) : (
+                  <Link href={`/bhatas/${bhata.id}`}>{card}</Link>
+                )}
               </motion.div>
             );
           })}
