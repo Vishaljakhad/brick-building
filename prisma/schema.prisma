@@ -163,3 +163,12 @@ model OrderItem {
 
   createdAt DateTime @default(now())
 }
+
+model LiveKilnCache {
+  id        String   @id @default(cuid())
+  cacheKey  String   @unique
+  data      Json
+  fetchedAt DateTime @default(now())
+
+  @@index([fetchedAt])
+}

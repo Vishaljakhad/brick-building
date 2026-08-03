@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 
 const OVERPASS_ENDPOINTS = [
@@ -9,9 +10,9 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 const MAX_RADIUS = 150;
-const CACHE_TTL_MS = 10 * 60 * 1000;
-
-const cache = new Map<string, { data: LiveBhata[]; ts: number }>();
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const GRID_SIZE = 0.5;
+const RADIUS_BUCKET = 150;
 
 interface OsmElement {
   type: "node" | "way" | "relation";
@@ -61,19 +62,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Invalid radius" }, { status: 400 });
   }
 
-  const cappedRadius = Math.min(radius, MAX_RADIUS);
-  const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${cappedRadius}`;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-    return NextResponse.json(cached.data, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-      },
+  const cacheKey = `${grid(lat)},${grid(lng)},${RADIUS_BUCKET}`;
+  const stale = await prisma.liveKilnCache.findUnique({ where: { cacheKey } });
+
+  if (stale && Date.now() - new Date(stale.fetchedAt).getTime() < CACHE_TTL_MS) {
+    const data = (stale.data as unknown) as LiveBhata[];
+    return NextResponse.json(filterByRadius(data, lat, lng, radius), {
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
     });
   }
 
-  const dLat = cappedRadius / 111;
-  const dLng = cappedRadius / (111 * Math.max(0.3, Math.cos((lat * Math.PI) / 180)));
+  const dLat = RADIUS_BUCKET / 111;
+  const dLng = RADIUS_BUCKET / (111 * Math.max(0.3, Math.cos((lat * Math.PI) / 180)));
   const bbox = `${lat - dLat},${lng - dLng},${lat + dLat},${lng + dLng}`;
 
   const query = `[out:json][timeout:25];(` +
@@ -116,12 +116,10 @@ export async function GET(req: Request) {
 
   if (elements.length === 0) {
     console.error("Nearby bhatas: no results", { lastError, lat, lng, radius });
-    const stale = cache.get(cacheKey);
     if (stale) {
-      return NextResponse.json(stale.data, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        },
+      const data = (stale.data as unknown) as LiveBhata[];
+      return NextResponse.json(filterByRadius(data, lat, lng, radius), {
+        headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
       });
     }
   }
@@ -159,15 +157,29 @@ export async function GET(req: Request) {
   }
 
   results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-  const filtered = cappedRadius >= MAX_RADIUS ? results : results.filter((r) => (r.distance || 0) <= cappedRadius);
 
-  cache.set(cacheKey, { data: filtered, ts: Date.now() });
+  if (results.length > 0) {
+    await prisma.liveKilnCache.upsert({
+      where: { cacheKey },
+      update: { data: results as unknown as object, fetchedAt: new Date() },
+      create: { cacheKey, data: results as unknown as object },
+    });
+  }
 
-  return NextResponse.json(filtered, {
-    headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-    },
+  return NextResponse.json(filterByRadius(results, lat, lng, radius), {
+    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
   });
+}
+
+function grid(v: number): string {
+  return (Math.round(v / GRID_SIZE) * GRID_SIZE).toFixed(1);
+}
+
+function filterByRadius(data: LiveBhata[], lat: number, lng: number, radius: number): LiveBhata[] {
+  return data
+    .map((b) => ({ ...b, distance: calculateDistance(lat, lng, b.latitude, b.longitude) }))
+    .filter((b) => b.distance <= radius)
+    .sort((a, b) => (a.distance || 0) - (b.distance || 0));
 }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
