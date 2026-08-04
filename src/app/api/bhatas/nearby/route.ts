@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { rateLimit, getClientIp, RATE_LIMIT_PROFILES } from "@/lib/rate-limit";
 
+export const maxDuration = 60;
+
 const OVERPASS_ENDPOINTS = [
   "https://z.overpass-api.de/api/interpreter",
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
@@ -98,11 +100,11 @@ export async function GET(req: Request) {
         },
         body: new URLSearchParams({ data: query }),
         cache: "no-store",
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(20000),
       });
       if (!res.ok) {
         lastError = `Overpass ${endpoint} HTTP ${res.status}`;
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 1500));
         continue;
       }
       const json = (await res.json()) as { elements?: OsmElement[] };
@@ -110,7 +112,7 @@ export async function GET(req: Request) {
       break;
     } catch (error) {
       lastError = `Overpass ${endpoint}: ${error instanceof Error ? error.message : String(error)}`;
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1500));
     }
   }
 
